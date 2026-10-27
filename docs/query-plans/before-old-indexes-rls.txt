@@ -1,0 +1,66 @@
+BEGIN
+DROP INDEX
+DROP INDEX
+DROP INDEX
+DROP INDEX
+DROP INDEX
+DROP INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+SET
+SET
+=== loads: old index shape + RLS ===
+                                                           QUERY PLAN                                                            
+---------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=0.30..12.11 rows=50 width=26) (actual time=0.034..0.072 rows=20 loops=1)
+   Buffers: shared hit=25
+   ->  Index Scan using loads_date_idx on loads  (cost=0.30..27.23 rows=114 width=26) (actual time=0.033..0.069 rows=20 loops=1)
+         Index Cond: (load_date >= (CURRENT_DATE - 30))
+         Filter: (tenant_id = (NULLIF(current_setting('app.current_tenant'::text, true), ''::text))::uuid)
+         Rows Removed by Filter: 6
+         Buffers: shared hit=25
+ Planning:
+   Buffers: shared hit=173 read=4
+ Planning Time: 1.225 ms
+ Execution Time: 0.110 ms
+(11 rows)
+
+=== fuel_purchases: old index shape + RLS ===
+                                                                 QUERY PLAN                                                                  
+---------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=0.42..175.53 rows=50 width=27) (actual time=0.100..0.294 rows=50 loops=1)
+   Buffers: shared hit=50 read=3
+   ->  Index Scan using fuel_truck_idx on fuel_purchases  (cost=0.42..7911.76 rows=2259 width=27) (actual time=0.098..0.286 rows=50 loops=1)
+         Index Cond: (truck_id = 'TRK00001'::text)
+         Filter: (tenant_id = (NULLIF(current_setting('app.current_tenant'::text, true), ''::text))::uuid)
+         Buffers: shared hit=50 read=3
+ Planning:
+   Buffers: shared hit=74 read=2
+ Planning Time: 1.360 ms
+ Execution Time: 0.396 ms
+(10 rows)
+
+=== delivery_events: old index shape + RLS ===
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=8.52..8.52 rows=2 width=41) (actual time=0.132..0.133 rows=2 loops=1)
+   Buffers: shared hit=2 read=3
+   ->  Sort  (cost=8.52..8.52 rows=2 width=41) (actual time=0.130..0.131 rows=2 loops=1)
+         Sort Key: actual_datetime DESC
+         Sort Method: quicksort  Memory: 25kB
+         Buffers: shared hit=2 read=3
+         ->  Index Scan using delivery_events_load_idx on delivery_events  (cost=0.42..8.51 rows=2 width=41) (actual time=0.089..0.095 rows=2 loops=1)
+               Index Cond: (load_id = 'LOAD90085452'::text)
+               Filter: (tenant_id = (NULLIF(current_setting('app.current_tenant'::text, true), ''::text))::uuid)
+               Buffers: shared hit=2 read=3
+ Planning:
+   Buffers: shared hit=81 read=2
+ Planning Time: 1.486 ms
+ Execution Time: 0.187 ms
+(14 rows)
+
+ROLLBACK

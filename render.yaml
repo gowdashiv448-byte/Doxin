@@ -1,0 +1,107 @@
+version: "1"
+
+databases:
+  - name: doxin-db
+    databaseName: doxin
+    user: doxin
+    region: oregon
+    plan: free
+    postgresMajorVersion: "16"
+    # The API and migrations connect over Render's private network. Enable
+    # external access temporarily only when importing the archive from a
+    # workstation.
+    ipAllowList: []
+
+services:
+  - type: web
+    name: doxin-api
+    runtime: docker
+    region: oregon
+    plan: free
+    dockerfilePath: ./docker/api.Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      # Render exposes the owner connection string for migrations only. The
+      # API derives the doxin_app runtime URL from this plus APP_DB_PASSWORD.
+      - key: MIGRATION_DATABASE_URL
+        fromDatabase:
+          name: doxin-db
+          property: connectionString
+      - key: APP_DB_PASSWORD
+        generateValue: true
+      - key: DATABASE_SSL
+        value: "false"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 12h
+      - key: CORS_ORIGIN
+        fromService:
+          name: doxin-web
+          type: static
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: LOG_LEVEL
+        value: info
+      - key: SEED_ADMIN_EMAIL
+        value: admin@doxin.com
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+      - key: SEED_PLATFORM_EMAIL
+        value: platform@doxin.com
+      - key: SEED_PLATFORM_PASSWORD
+        sync: false
+      - key: SEED_SECOND_TENANT_NAME
+        value: Northwind Logistics
+      - key: SEED_SECOND_TENANT_SLUG
+        value: northwind
+      - key: SEED_SECOND_TENANT_EMAIL
+        value: admin@northwind.test
+      - key: SEED_SECOND_TENANT_PASSWORD
+        sync: false
+      # Set to false before the first deploy when importing the archive into an
+      # empty tenant; otherwise starter demo rows claim the low IDs.
+      - key: SEED_STARTER_DATA
+        value: "true"
+
+  - type: web
+    name: doxin-web
+    runtime: static
+    rootDir: .
+    buildCommand: npm ci --no-audit --no-fund && npm run build -w @doxin/shared && npm run build -w @doxin/web
+    staticPublishPath: apps/web/dist
+    autoDeployTrigger: commit
+    envVars:
+      # The build command installs explicitly; skip Render's automatic install.
+      - key: SKIP_INSTALL_DEPS
+        value: "true"
+      # Vite bakes this into the bundle. The API allows the web origin via CORS.
+      - key: VITE_API_URL
+        fromService:
+          name: doxin-api
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    routes:
+      # React Router owns client-side routes; serve the SPA shell for them.
+      - type: rewrite
+        source: /*
+        destination: /index.html

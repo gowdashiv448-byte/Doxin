@@ -1,0 +1,83 @@
+BEGIN
+DROP INDEX
+DROP INDEX
+DROP INDEX
+DROP INDEX
+DROP INDEX
+DROP INDEX
+SET
+SET
+=== loads: date range ===
+                                                                           QUERY PLAN                                                                           
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=5388.24..5394.07 rows=50 width=26) (actual time=20.322..26.972 rows=20 loops=1)
+   Buffers: shared hit=3393
+   ->  Gather Merge  (cost=5388.24..5399.44 rows=96 width=26) (actual time=20.319..26.962 rows=20 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=3393
+         ->  Sort  (cost=4388.22..4388.34 rows=48 width=26) (actual time=13.235..13.238 rows=7 loops=3)
+               Sort Key: load_date DESC
+               Sort Method: quicksort  Memory: 25kB
+               Buffers: shared hit=3393
+               Worker 0:  Sort Method: quicksort  Memory: 25kB
+               Worker 1:  Sort Method: quicksort  Memory: 25kB
+               ->  Parallel Seq Scan on loads  (cost=0.00..4386.88 rows=48 width=26) (actual time=12.178..12.828 rows=7 loops=3)
+                     Filter: ((load_date >= (CURRENT_DATE - 30)) AND (tenant_id = (NULLIF(current_setting('app.current_tenant'::text, true), ''::text))::uuid))
+                     Rows Removed by Filter: 28472
+                     Buffers: shared hit=3319
+ Planning:
+   Buffers: shared hit=186 read=7
+ Planning Time: 2.437 ms
+ Execution Time: 27.227 ms
+(20 rows)
+
+=== fuel_purchases: truck history ===
+                                                                        QUERY PLAN                                                                         
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=10186.68..10192.51 rows=50 width=27) (actual time=32.997..40.344 rows=50 loops=1)
+   Buffers: shared hit=3834 read=3349
+   ->  Gather Merge  (cost=10186.68..10406.26 rows=1882 width=27) (actual time=32.994..40.331 rows=50 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=3834 read=3349
+         ->  Sort  (cost=9186.66..9189.01 rows=941 width=27) (actual time=25.719..25.727 rows=40 loops=3)
+               Sort Key: purchase_date DESC
+               Sort Method: top-N heapsort  Memory: 31kB
+               Buffers: shared hit=3834 read=3349
+               Worker 0:  Sort Method: top-N heapsort  Memory: 31kB
+               Worker 1:  Sort Method: top-N heapsort  Memory: 30kB
+               ->  Parallel Seq Scan on fuel_purchases  (cost=0.00..9155.40 rows=941 width=27) (actual time=0.347..25.076 rows=738 loops=3)
+                     Filter: ((truck_id = 'TRK00001'::text) AND (tenant_id = (NULLIF(current_setting('app.current_tenant'::text, true), ''::text))::uuid))
+                     Rows Removed by Filter: 64747
+                     Buffers: shared hit=3760 read=3349
+ Planning:
+   Buffers: shared hit=65 read=5
+ Planning Time: 1.587 ms
+ Execution Time: 40.577 ms
+(20 rows)
+
+=== delivery_events: load timeline ===
+                                                                          QUERY PLAN                                                                          
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=8884.84..8884.84 rows=2 width=41) (actual time=33.861..39.947 rows=2 loops=1)
+   Buffers: shared hit=3083 read=3022
+   ->  Sort  (cost=8884.84..8884.84 rows=2 width=41) (actual time=33.858..39.943 rows=2 loops=1)
+         Sort Key: actual_datetime DESC
+         Sort Method: quicksort  Memory: 25kB
+         Buffers: shared hit=3083 read=3022
+         ->  Gather  (cost=1000.00..8884.83 rows=2 width=41) (actual time=0.913..39.887 rows=2 loops=1)
+               Workers Planned: 2
+               Workers Launched: 2
+               Buffers: shared hit=3083 read=3022
+               ->  Parallel Seq Scan on delivery_events  (cost=0.00..7884.62 rows=1 width=41) (actual time=12.598..25.111 rows=1 loops=3)
+                     Filter: ((load_id = 'LOAD90085452'::text) AND (tenant_id = (NULLIF(current_setting('app.current_tenant'::text, true), ''::text))::uuid))
+                     Rows Removed by Filter: 56947
+                     Buffers: shared hit=3083 read=3022
+ Planning:
+   Buffers: shared hit=79 read=1
+ Planning Time: 1.536 ms
+ Execution Time: 40.026 ms
+(18 rows)
+
+ROLLBACK

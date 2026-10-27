@@ -1,0 +1,60 @@
+BEGIN
+DROP INDEX
+DROP INDEX
+DROP INDEX
+DROP INDEX
+DROP INDEX
+DROP INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+=== loads: date range (pre-migration index shape, no RLS) ===
+                                                           QUERY PLAN                                                            
+---------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=0.30..11.48 rows=50 width=26) (actual time=0.036..0.089 rows=26 loops=1)
+   Buffers: shared hit=25
+   ->  Index Scan using loads_date_idx on loads  (cost=0.30..25.80 rows=114 width=26) (actual time=0.034..0.083 rows=26 loops=1)
+         Index Cond: (load_date >= (CURRENT_DATE - 30))
+         Buffers: shared hit=25
+ Planning:
+   Buffers: shared hit=134 read=4
+ Planning Time: 1.032 ms
+ Execution Time: 0.175 ms
+(9 rows)
+
+=== fuel_purchases: truck history (pre-migration index shape, no RLS) ===
+                                                                 QUERY PLAN                                                                  
+---------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=0.42..174.90 rows=50 width=27) (actual time=0.074..0.153 rows=50 loops=1)
+   Buffers: shared hit=50 read=3
+   ->  Index Scan using fuel_truck_idx on fuel_purchases  (cost=0.42..7883.52 rows=2259 width=27) (actual time=0.072..0.144 rows=50 loops=1)
+         Index Cond: (truck_id = 'TRK00001'::text)
+         Buffers: shared hit=50 read=3
+ Planning:
+   Buffers: shared hit=77 read=2
+ Planning Time: 1.088 ms
+ Execution Time: 0.236 ms
+(9 rows)
+
+=== delivery_events: load timeline (pre-migration index shape, no RLS) ===
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=8.49..8.50 rows=2 width=41) (actual time=0.097..0.098 rows=2 loops=1)
+   Buffers: shared hit=2 read=3
+   ->  Sort  (cost=8.49..8.50 rows=2 width=41) (actual time=0.095..0.096 rows=2 loops=1)
+         Sort Key: actual_datetime DESC
+         Sort Method: quicksort  Memory: 25kB
+         Buffers: shared hit=2 read=3
+         ->  Index Scan using delivery_events_load_idx on delivery_events  (cost=0.42..8.48 rows=2 width=41) (actual time=0.072..0.076 rows=2 loops=1)
+               Index Cond: (load_id = 'LOAD90085452'::text)
+               Buffers: shared hit=2 read=3
+ Planning:
+   Buffers: shared hit=78 read=2
+ Planning Time: 1.011 ms
+ Execution Time: 0.137 ms
+(13 rows)
+
+ROLLBACK
