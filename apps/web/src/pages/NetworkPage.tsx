@@ -62,33 +62,33 @@ export default function NetworkPage() {
 
   return (
     <MasterDataPage
-      eyebrow="Network"
-      title="Lanes"
-      description="Origin–destination lanes with distance, rate structure and transit expectations."
+      eyebrow="Routes"
+      title="Routes"
+      description="Origin–destination transport routes with distance (km) and rate per km."
       path="/api/routes"
       idKey="routeId"
       canManage={canManage}
       pageSize={30}
       headerExtra={tabs}
-      searchPlaceholder="Origin, destination, lane ID…"
+      searchPlaceholder="Origin, destination, route ID…"
       columns={[
-        { key: "originCity", label: "Lane", render: (row) => <div><p className="text-[13px] font-medium text-ink-900">{row.originCity}, {row.originState} → {row.destinationCity}, {row.destinationState}</p><p className="mono text-[10.5px] text-ink-400">{row.routeId}</p></div> },
-        { key: "typicalDistanceMiles", label: "Distance", align: "right", render: (row) => <span className="font-mono">{Number(row.typicalDistanceMiles).toLocaleString()} mi</span> },
-        { key: "baseRatePerMile", label: "Base rate", align: "right", render: (row) => <span className="font-mono">${Number(row.baseRatePerMile).toFixed(2)}/mi</span> },
-        { key: "fuelSurchargeRate", label: "FSC", align: "right", render: (row) => <span className="font-mono">${Number(row.fuelSurchargeRate).toFixed(2)}/mi</span> },
+        { key: "originCity", label: "Route", render: (row) => <div><p className="text-[13px] font-medium text-ink-900">{row.originCity}, {row.originState} → {row.destinationCity}, {row.destinationState}</p><p className="mono text-[10.5px] text-ink-400">{row.routeId}</p></div> },
+        { key: "typicalDistanceMiles", label: "Distance", align: "right", render: (row) => <span className="font-mono">{Number(row.typicalDistanceMiles).toLocaleString()} km</span> },
+        { key: "baseRatePerMile", label: "Base rate", align: "right", render: (row) => <span className="font-mono">₹{Number(row.baseRatePerMile).toFixed(2)}/km</span> },
+        { key: "fuelSurchargeRate", label: "Fuel Extra", align: "right", render: (row) => <span className="font-mono">₹{Number(row.fuelSurchargeRate).toFixed(2)}/km</span> },
         { key: "typicalTransitDays", label: "Transit", render: (row) => `${row.typicalTransitDays} day${row.typicalTransitDays === 1 ? "" : "s"}` },
         { key: "isActive", label: "Status", render: (row) => <Badge tone={row.isActive ? "success" : "neutral"}>{row.isActive ? "Active" : "Inactive"}</Badge> },
       ]}
       fields={[
         { key: "originCity", label: "Origin city", required: true },
-        { key: "originState", label: "Origin state", required: true, placeholder: "IL" },
+        { key: "originState", label: "Origin state", required: true, placeholder: "MH" },
         { key: "destinationCity", label: "Destination city", required: true },
-        { key: "destinationState", label: "Destination state", required: true, placeholder: "OH" },
-        { key: "typicalDistanceMiles", label: "Distance (miles)", type: "number", required: true },
-        { key: "baseRatePerMile", label: "Base rate per mile", type: "number", required: true },
-        { key: "fuelSurchargeRate", label: "Fuel surcharge per mile", type: "number" },
+        { key: "destinationState", label: "Destination state", required: true, placeholder: "DL" },
+        { key: "typicalDistanceMiles", label: "Distance (km)", type: "number", required: true },
+        { key: "baseRatePerMile", label: "Base rate per km (₹)", type: "number", required: true },
+        { key: "fuelSurchargeRate", label: "Fuel surcharge per km (₹)", type: "number" },
         { key: "typicalTransitDays", label: "Transit days", type: "number" },
-        { key: "isActive", label: "Active lane", type: "select", options: [{ value: "true", label: "Active" }, { value: "false", label: "Inactive" }] },
+        { key: "isActive", label: "Active route", type: "select", options: [{ value: "true", label: "Active" }, { value: "false", label: "Inactive" }] },
       ]}
       defaults={{ typicalTransitDays: "1", fuelSurchargeRate: "0", isActive: "true" }}
       transform={(payload) => ({ ...payload, isActive: payload.isActive === true || payload.isActive === "true" })}

@@ -2,17 +2,18 @@ import { format, formatDistanceToNow, parseISO } from "date-fns";
 
 export const money = (value: number | string | null | undefined, digits = 0) => {
   const n = Number(value ?? 0);
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-IN", {
     style: "currency",
-    currency: "USD",
+    currency: "INR",
     maximumFractionDigits: digits,
   }).format(n);
 };
 
 export const compactMoney = (value: number | string | null | undefined) => {
   const n = Number(value ?? 0);
-  if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(1)}k`;
+  if (Math.abs(n) >= 10_000_000) return `₹${(n / 10_000_000).toFixed(1)} Cr`;
+  if (Math.abs(n) >= 100_000) return `₹${(n / 100_000).toFixed(1)} L`;
+  if (Math.abs(n) >= 1_000) return `₹${(n / 1_000).toFixed(1)}k`;
   return money(n);
 };
 

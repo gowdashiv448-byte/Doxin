@@ -24,9 +24,12 @@ import {
   Bell,
   Plus,
   Search,
+  Receipt,
+  Globe,
 } from "lucide-react";
 import { useAuth, canWrite } from "../lib/auth";
 import { ROLE_LABELS } from "@doxin/shared";
+import { useLanguage, SUPPORTED_LANGUAGES, type Language } from "../lib/language";
 
 interface NavItem {
   to: string;
@@ -40,11 +43,17 @@ const groups: { label: string; items: NavItem[] }[] = [
   {
     label: "Operations",
     items: [
-      { to: "/", label: "Overview", icon: <LayoutDashboard className="h-[17px] w-[17px]" />, end: true },
+      { to: "/", label: "Dashboard", icon: <LayoutDashboard className="h-[17px] w-[17px]" />, end: true },
       { to: "/loads", label: "Loads", icon: <Package className="h-[17px] w-[17px]" /> },
-      { to: "/dispatch", label: "Dispatch board", icon: <Send className="h-[17px] w-[17px]" /> },
+      { to: "/dispatch", label: "Dispatch", icon: <Send className="h-[17px] w-[17px]" /> },
       { to: "/trips", label: "Trips", icon: <RouteIcon className="h-[17px] w-[17px]" /> },
       { to: "/tracking", label: "Tracking", icon: <MapPin className="h-[17px] w-[17px]" /> },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      { to: "/accounting", label: "Invoices", icon: <Receipt className="h-[17px] w-[17px]" /> },
     ],
   },
   {
@@ -52,8 +61,8 @@ const groups: { label: string; items: NavItem[] }[] = [
     items: [
       { to: "/customers", label: "Customers", icon: <Building2 className="h-[17px] w-[17px]" /> },
       { to: "/drivers", label: "Drivers", icon: <Users className="h-[17px] w-[17px]" /> },
-      { to: "/fleet", label: "Fleet", icon: <Truck className="h-[17px] w-[17px]" /> },
-      { to: "/network", label: "Lanes & facilities", icon: <Waypoints className="h-[17px] w-[17px]" /> },
+      { to: "/fleet", label: "Fleet Trucks", icon: <Truck className="h-[17px] w-[17px]" /> },
+      { to: "/network", label: "Routes & Hubs", icon: <Waypoints className="h-[17px] w-[17px]" /> },
     ],
   },
   {
@@ -75,18 +84,19 @@ const groups: { label: string; items: NavItem[] }[] = [
 ];
 
 const titles: Record<string, string> = {
-  "/": "Overview",
+  "/": "Dashboard",
   "/loads": "Loads",
-  "/dispatch": "Dispatch board",
+  "/dispatch": "Dispatch",
   "/trips": "Trips",
   "/tracking": "Tracking",
   "/customers": "Customers",
   "/drivers": "Drivers",
-  "/fleet": "Fleet",
-  "/network": "Lanes & facilities",
+  "/fleet": "Fleet Trucks",
+  "/network": "Routes & Hubs",
   "/fuel": "Fuel",
   "/analytics": "Analytics",
   "/safety": "Safety",
+  "/accounting": "Invoices",
   "/team": "Administrators",
   "/imports": "Data imports",
   "/settings": "Settings",
@@ -94,6 +104,7 @@ const titles: Record<string, string> = {
 
 export function AppShell() {
   const { user, logout } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -130,7 +141,7 @@ export function AppShell() {
         <span className="flex-1">
           <span className="block truncate text-[12px] font-medium text-ink-100">{workspaceName}</span>
           <span className="block text-[10px] text-ink-500">
-            {user?.role === "PLATFORM_ADMIN" ? "Platform console" : "Isolated tenant workspace"}
+            {user?.role === "PLATFORM_ADMIN" ? t("Platform console") : t("Active workspace")}
           </span>
         </span>
         <ChevronDown className="h-3.5 w-3.5 text-ink-500" />
@@ -142,7 +153,7 @@ export function AppShell() {
           if (!visible.length) return null;
           return (
             <div key={group.label}>
-              <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-600">{group.label}</p>
+              <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-600">{t(group.label)}</p>
               <div className="space-y-0.5">
                 {visible.map((item) => (
                   <NavLink
@@ -160,8 +171,8 @@ export function AppShell() {
                     }
                   >
                     {item.icon}
-                    <span className="flex-1">{item.label}</span>
-                    {item.label === "Dispatch board" ? (
+                    <span className="flex-1">{t(item.label)}</span>
+                    {item.label === "Dispatch" ? (
                       <span className="rounded bg-signal-500/15 px-1.5 py-px font-mono text-[9px] font-medium text-signal-400">LIVE</span>
                     ) : null}
                   </NavLink>
@@ -183,11 +194,11 @@ export function AppShell() {
           </span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-[12px] font-medium text-ink-100">{user?.name}</p>
-            <p className="truncate text-[10px] text-ink-500">{user ? ROLE_LABELS[user.role] : ""}</p>
+            <p className="truncate text-[10px] text-ink-500">{user ? t(ROLE_LABELS[user.role]) : ""}</p>
           </div>
           <button
             onClick={logout}
-            title="Sign out"
+            title={t("Sign out")}
             className="rounded p-1.5 text-ink-500 transition-colors hover:bg-ink-800 hover:text-ink-200"
           >
             <LogOut className="h-4 w-4" />
@@ -214,9 +225,9 @@ export function AppShell() {
               <Menu className="h-5 w-5" />
             </button>
             <div className="flex items-center gap-2 text-[13px]">
-              <span className="hidden text-ink-400 sm:inline">Operations</span>
+              <span className="hidden text-ink-400 sm:inline">{t("Operations")}</span>
               <span className="hidden text-ink-300 sm:inline">/</span>
-              <span className="font-medium text-ink-900">{title}</span>
+              <span className="font-medium text-ink-900">{t(title)}</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -226,15 +237,33 @@ export function AppShell() {
                 onClick={() => navigate("/loads")}
                 className="flex h-8 w-56 items-center rounded-md border border-ink-200 bg-white pl-8 text-left text-[12px] text-ink-400 hover:border-ink-300"
               >
-                Search loads…
+                {t("Search trips…")}
                 <span className="ml-auto mr-2 kbd">⌘K</span>
               </button>
             </div>
+
+            {/* Global Language Selector */}
+            <div className="flex items-center gap-1.5 rounded-md border border-ink-200 bg-white px-2 py-1 shadow-sm">
+              <Globe className="h-3.5 w-3.5 text-ink-500" />
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as Language)}
+                className="cursor-pointer bg-transparent text-[11.5px] font-medium text-ink-700 outline-none"
+                aria-label="Select language"
+              >
+                {SUPPORTED_LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.nativeName} ({l.name})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <button
               className="relative rounded-md border border-ink-200 bg-white p-2 text-ink-500 hover:text-ink-800"
               onClick={() => navigate("/loads?status=EXCEPTION")}
-              aria-label="Open exception queue"
-              title="Open exception queue"
+              aria-label="View issues"
+              title="View issues"
             >
               <Bell className="h-4 w-4" />
               <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-signal-500" />
@@ -244,7 +273,7 @@ export function AppShell() {
                 onClick={() => navigate("/loads?new=1")}
                 className="btn-primary h-8 px-3 text-[12px]"
               >
-                <Plus className="h-3.5 w-3.5" /> New load
+                <Plus className="h-3.5 w-3.5" /> {t("New Trip")}
               </button>
             ) : null}
             <div className="relative">

@@ -4,6 +4,7 @@ import { Pencil, Plus, RefreshCw } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useToast } from "../lib/toast";
+import { useLanguage } from "../lib/language";
 import { Button, Card, DataTable, EmptyState, Field, Input, LoadingBlock, Modal, PageHeader, Pagination, SearchInput, Select, Textarea } from "./ui";
 
 export interface ColumnDef {
@@ -77,6 +78,7 @@ export function MasterDataPage({
   const queryClient = useQueryClient();
   const toast = useToast();
   const { user } = useAuth();
+  const { t } = useLanguage();
 
   const queryKey = [path, { search, page, ...filterValues }];
   const { data, isLoading, isFetching, refetch } = useQuery({
@@ -143,8 +145,8 @@ export function MasterDataPage({
         actions={
           <>
             {extraActions}
-            <Button variant="ghost" onClick={() => refetch()} loading={isFetching}><RefreshCw className="h-3.5 w-3.5" /> Refresh</Button>
-            {canManage ? <Button variant="accent" onClick={startCreate}><Plus className="h-4 w-4" /> Add {title.slice(0, -1).toLowerCase()}</Button> : null}
+            <Button variant="ghost" onClick={() => refetch()} loading={isFetching}><RefreshCw className="h-3.5 w-3.5" /> {t("Refresh")}</Button>
+            {canManage ? <Button variant="accent" onClick={startCreate}><Plus className="h-4 w-4" /> {t("Add")} {t(title.slice(0, -1).toLowerCase())}</Button> : null}
           </>
         }
       />
@@ -160,11 +162,11 @@ export function MasterDataPage({
                 onChange={(e) => { setFilterValues((f) => ({ ...f, [filter.key]: e.target.value })); setPage(1); }}
                 className="w-40"
               >
-                <option value="">All {filter.label.toLowerCase()}</option>
-                {filter.options.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                <option value="">{t("All")} {t(filter.label)}</option>
+                {filter.options.map((opt) => <option key={opt.value} value={opt.value}>{t(opt.label)}</option>)}
               </Select>
             ))}
-            <span className="text-[11px] text-ink-400">{data?.total?.toLocaleString() ?? 0} records</span>
+            <span className="text-[11px] text-ink-400">{data?.total?.toLocaleString() ?? 0} {t("records")}</span>
           </div>
         </div>
         {isLoading ? <LoadingBlock rows={8} /> : data?.data.length ? (
@@ -172,7 +174,7 @@ export function MasterDataPage({
             <DataTable>
               <thead>
                 <tr>
-                  {columns.map((col) => <th key={col.key} className={col.align === "right" ? "text-right" : undefined}>{col.label}</th>)}
+                  {columns.map((col) => <th key={col.key} className={col.align === "right" ? "text-right" : undefined}>{t(col.label)}</th>)}
                   {canManage ? <th className="w-12" /> : null}
                 </tr>
               </thead>
@@ -203,18 +205,18 @@ export function MasterDataPage({
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editing ? `Edit ${title.slice(0, -1).toLowerCase()}` : `Add ${title.slice(0, -1).toLowerCase()}`}
+        title={editing ? `${t("Edit")} ${t(title.slice(0, -1).toLowerCase())}` : `${t("Add")} ${t(title.slice(0, -1).toLowerCase())}`}
         description={editing ? String(editing[idKey]) : `Create a new record in ${title.toLowerCase()}.`}
         size="lg"
-        footer={<><Button variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button><Button variant="primary" loading={save.isPending} onClick={submit}>{editing ? "Save changes" : "Create"}</Button></>}
+        footer={<><Button variant="ghost" onClick={() => setModalOpen(false)}>{t("Cancel")}</Button><Button variant="primary" loading={save.isPending} onClick={submit}>{editing ? t("Save") : t("Save")}</Button></>}
       >
         <div className="grid gap-4 sm:grid-cols-2">
           {fields.map((field) => (
             <Field key={field.key} label={field.label} hint={field.hint} className={field.span === 2 ? "sm:col-span-2" : undefined}>
               {field.type === "select" ? (
                 <Select value={values[field.key] ?? ""} onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}>
-                  <option value="">Select…</option>
-                  {field.options?.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  <option value="">{t("Select…")}</option>
+                  {field.options?.map((opt) => <option key={opt.value} value={opt.value}>{t(opt.label)}</option>)}
                 </Select>
               ) : field.type === "textarea" ? (
                 <Textarea value={values[field.key] ?? ""} onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))} placeholder={field.placeholder} />

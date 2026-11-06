@@ -55,6 +55,10 @@ function sessionUser(
  */
 export async function authenticate(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
   try {
+    const query = request.query as Record<string, string> | undefined;
+    if (query?.token && !request.headers.authorization) {
+      request.headers.authorization = `Bearer ${query.token}`;
+    }
     await request.jwtVerify();
   } catch {
     throw unauthorized("Your session is invalid or has expired");

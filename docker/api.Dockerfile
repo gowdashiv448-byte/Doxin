@@ -32,6 +32,7 @@ COPY --from=build --chown=node:node /app/apps/api/package.json ./apps/api/packag
 COPY --from=build --chown=node:node /app/apps/api/dist ./apps/api/dist
 COPY --from=build --chown=node:node /app/apps/api/src/db/migrations ./apps/api/dist/db/migrations
 COPY --chown=node:node docker/render-start.sh ./docker/render-start.sh
+RUN mkdir -p /app/uploads/bills && chown -R node:node /app/uploads
 
 USER node
 EXPOSE 4000

@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useAuth, AuthProvider } from "./lib/auth";
 import { ToastProvider } from "./lib/toast";
+import { LanguageProvider } from "./lib/language";
 import { AppShell } from "./components/AppShell";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -16,6 +17,7 @@ import NetworkPage from "./pages/NetworkPage";
 import FuelPage from "./pages/FuelPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SafetyPage from "./pages/SafetyPage";
+import AccountingPage from "./pages/AccountingPage";
 import TeamPage from "./pages/TeamPage";
 import ImportsPage from "./pages/ImportsPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -63,9 +65,10 @@ function NotFound() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ToastProvider>
-          <BrowserRouter>
+      <LanguageProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <BrowserRouter>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route element={<Protected />}>
@@ -81,6 +84,7 @@ export default function App() {
                 <Route path="/fuel" element={<FuelPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/safety" element={<SafetyPage />} />
+                <Route path="/accounting" element={<AccountingPage />} />
                 <Route path="/team" element={<AdminOnly><TeamPage /></AdminOnly>} />
                 <Route path="/imports" element={<AdminOnly><ImportsPage /></AdminOnly>} />
                 <Route path="/settings" element={<SettingsPage />} />
@@ -90,6 +94,7 @@ export default function App() {
           </BrowserRouter>
         </ToastProvider>
       </AuthProvider>
-    </QueryClientProvider>
+    </LanguageProvider>
+  </QueryClientProvider>
   );
 }

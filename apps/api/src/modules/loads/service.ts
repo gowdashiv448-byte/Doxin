@@ -4,6 +4,7 @@ import { query, withTransaction } from "../../db/index.js";
 import { badRequest, conflict, notFound, unprocessable } from "../../lib/errors.js";
 import { paginate, pageResult, type Pagination } from "../../lib/pagination.js";
 import { toCamel } from "../../lib/crud.js";
+import { generateBillForLoadTx } from "../accounting/service.js";
 
 export interface LoadListQuery extends Pagination {
   status?: string;
@@ -28,7 +29,8 @@ const LIST_SELECT = `
   t.actual_distance_miles, t.trip_status, t.idle_time_hours, t.average_mpg,
   pickup.scheduled_datetime AS pickup_scheduled, pickup.actual_datetime AS pickup_actual, pickup.on_time_flag AS pickup_on_time,
   delivery.scheduled_datetime AS delivery_scheduled, delivery.actual_datetime AS delivery_actual, delivery.on_time_flag AS delivery_on_time,
-  COALESCE(fuel.fuel_cost, 0) AS fuel_cost
+  COALESCE(fuel.fuel_cost, 0) AS fuel_cost,
+  b.bill_id, b.s3_url AS bill_s3_url, b.total_amount AS billed_total_amount, b.status AS bill_status, b.email_status AS bill_email_status
 `;
 
 const LIST_FROM = `
@@ -38,6 +40,7 @@ const LIST_FROM = `
   LEFT JOIN trips t ON t.load_id = l.load_id
   LEFT JOIN drivers d ON d.driver_id = t.driver_id
   LEFT JOIN trucks tr ON tr.truck_id = t.truck_id
+  LEFT JOIN db_s3_bill b ON b.load_id = l.load_id
   LEFT JOIN LATERAL (
     SELECT scheduled_datetime, actual_datetime, on_time_flag
     FROM delivery_events e WHERE e.load_id = l.load_id AND e.event_type = 'Pickup'
@@ -149,6 +152,13 @@ export async function getLoadDetail(id: string): Promise<Record<string, unknown>
      FROM audit_logs a WHERE a.entity_type = 'load' AND a.entity_id = $1 ORDER BY a.created_at DESC LIMIT 30`,
     [id],
   );
+  const bill = await query(
+    `SELECT b.*, c.customer_name, c.billing_address, c.contact_name
+     FROM db_s3_bill b
+     JOIN customers c ON c.customer_id = b.customer_id
+     WHERE b.load_id = $1`,
+    [id],
+  );
   return {
     ...load,
     events: events.rows.map((r) => toCamel(r)),
@@ -156,6 +166,7 @@ export async function getLoadDetail(id: string): Promise<Record<string, unknown>
     incidents: incidents.rows.map((r) => toCamel(r)),
     trip: trip.rows[0] ? toCamel(trip.rows[0]) : null,
     timeline: timeline.rows.map((r) => toCamel(r)),
+    bill: bill.rows[0] ? toCamel(bill.rows[0]) : null,
   };
 }
 
@@ -243,7 +254,17 @@ export async function createLoad(input: CreateLoadInput, userId: string) {
 
 async function getLoadDetailTx(client: pg.PoolClient, id: string) {
   const { rows } = await client.query(`SELECT ${LIST_SELECT} ${LIST_FROM} WHERE l.load_id = $1`, [id]);
-  return toCamel(rows[0]!);
+  const billRes = await client.query(
+    `SELECT b.*, c.customer_name, c.billing_address, c.contact_name
+     FROM db_s3_bill b
+     JOIN customers c ON c.customer_id = b.customer_id
+     WHERE b.load_id = $1`,
+    [id],
+  );
+  return {
+    ...toCamel(rows[0]!),
+    bill: billRes.rows[0] ? toCamel(billRes.rows[0]) : null,
+  };
 }
 
 export interface PlanInput {
@@ -486,6 +507,12 @@ export async function transitionLoad(id: string, input: ActionInput, actor: { id
       // assignment state already applied above
     }
     await client.query("UPDATE loads SET load_status = $1, updated_at = now() WHERE load_id = $2", [newStatus, id]);
+
+    // Automatically generate billing, store PDF in S3, and trigger AWS SES receipt email upon delivery completion
+    if (newStatus === "DELIVERED" || newStatus === "COMPLETED") {
+      await generateBillForLoadTx(client, id);
+    }
+
     await client.query(
       `INSERT INTO audit_logs (actor_id, actor_name, action, entity_type, entity_id, details)
        VALUES ($1, $2, $3, 'load', $4, $5)`,

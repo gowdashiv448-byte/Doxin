@@ -34,5 +34,31 @@ export default async function driverRoutes(app: FastifyInstance) {
     createSchema: z.object(base),
     updateSchema: z.object(base).partial(),
     filters: { employmentStatus: "employment_status", terminal: "home_terminal" },
+    customFilter: (q, params) => {
+      if (q.available === "true" || q.available === true || q.forLoadId) {
+        if (q.forLoadId && typeof q.forLoadId === "string") {
+          params.push(q.forLoadId);
+          return `drivers.employment_status = 'Active' AND NOT EXISTS (
+            SELECT 1 FROM trips tr
+            WHERE tr.driver_id = drivers.driver_id
+              AND tr.trip_status IN ('PLANNED','DISPATCHED','IN_TRANSIT')
+              AND tr.load_id <> $${params.length}
+          )`;
+        }
+        return `drivers.employment_status = 'Active' AND NOT EXISTS (
+          SELECT 1 FROM trips tr
+          WHERE tr.driver_id = drivers.driver_id
+            AND tr.trip_status IN ('PLANNED','DISPATCHED','IN_TRANSIT')
+        )`;
+      }
+      if (q.available === "false") {
+        return `EXISTS (
+          SELECT 1 FROM trips tr
+          WHERE tr.driver_id = drivers.driver_id
+            AND tr.trip_status IN ('PLANNED','DISPATCHED','IN_TRANSIT')
+        )`;
+      }
+      return undefined;
+    },
   });
 }

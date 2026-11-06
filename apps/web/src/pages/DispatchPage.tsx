@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { AlertTriangle, ArrowRight, CircleDollarSign, Send, Truck, Users } from "lucide-react";
 import { api } from "../lib/api";
+import { useLanguage } from "../lib/language";
 import { Badge, Button, Card, EmptyState, LoadingBlock, PageHeader, StatCard } from "../components/ui";
 import { LoadDetail } from "../components/LoadDetail";
 import { money, num, relative } from "../lib/format";
@@ -11,15 +12,16 @@ import type { Page } from "@doxin/shared";
 type Row = Record<string, any>;
 
 const columns = [
-  { status: "BOOKED", label: "Booked · needs planning", tone: "border-t-sky-400" },
-  { status: "PLANNED", label: "Planned · ready to dispatch", tone: "border-t-indigo-400" },
+  { status: "BOOKED", label: "Booked · Needs Truck", tone: "border-t-sky-400" },
+  { status: "PLANNED", label: "Ready to Dispatch", tone: "border-t-indigo-400" },
   { status: "DISPATCHED", label: "Dispatched", tone: "border-t-amber-400" },
-  { status: "IN_TRANSIT", label: "In transit", tone: "border-t-emerald-400" },
-  { status: "EXCEPTION", label: "Exceptions", tone: "border-t-red-400" },
+  { status: "IN_TRANSIT", label: "On the Road", tone: "border-t-emerald-400" },
+  { status: "EXCEPTION", label: "Issues / Delayed", tone: "border-t-red-400" },
 ];
 
 export default function DispatchPage() {
   const [params, setParams] = useSearchParams();
+  const { t } = useLanguage();
   const {
     data,
     isLoading,
@@ -28,9 +30,9 @@ export default function DispatchPage() {
     queryFn: () => api.get<Page<Row>>("/api/loads", { status: "ACTIVE", pageSize: 100, sort: "loadDate", order: "asc" }),
     refetchInterval: 45_000,
   });
-  const { data: drivers } = useQuery({ queryKey: ["drivers", "dispatch"], queryFn: () => api.get<Page<Row>>("/api/drivers", { pageSize: 200, employmentStatus: "Active" }) });
-  const { data: trucks } = useQuery({ queryKey: ["trucks", "dispatch"], queryFn: () => api.get<Page<Row>>("/api/trucks", { pageSize: 200, status: "Active" }) });
-  const { data: trailers } = useQuery({ queryKey: ["trailers", "dispatch"], queryFn: () => api.get<Page<Row>>("/api/trailers", { pageSize: 200, status: "Active" }) });
+  const { data: drivers } = useQuery({ queryKey: ["drivers", "dispatch"], queryFn: () => api.get<Page<Row>>("/api/drivers", { pageSize: 200, employmentStatus: "Active", available: "true" }) });
+  const { data: trucks } = useQuery({ queryKey: ["trucks", "dispatch"], queryFn: () => api.get<Page<Row>>("/api/trucks", { pageSize: 200, status: "Active", available: "true" }) });
+  const { data: trailers } = useQuery({ queryKey: ["trailers", "dispatch"], queryFn: () => api.get<Page<Row>>("/api/trailers", { pageSize: 200, status: "Active", available: "true" }) });
 
   const grouped = useMemo(() => {
     const map = new Map<string, Row[]>();
@@ -60,23 +62,24 @@ export default function DispatchPage() {
     <>
       <PageHeader
         eyebrow="Dispatch"
-        title="Dispatch board"
-        description="Move loads from booked to rolling. Assign a driver, tractor and trailer, then dispatch."
+        title="Dispatch Board"
+        description="Assign driver and truck to booked trips and dispatch them on the road."
         actions={<div className="flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-[12px] text-ink-500"><Send className="h-3.5 w-3.5 text-signal-500" /> Live board · refreshes every 45s</div>}
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Unassigned loads" value={num(unassigned)} sub="Need driver & equipment" tone={unassigned ? "warning" : "neutral"} icon={<AlertTriangle className="h-4 w-4" />} />
-        <StatCard label="Available drivers" value={num(drivers?.data.filter((d) => d.employmentStatus === "Active").length ?? 0)} sub="Eligible to dispatch" icon={<Users className="h-4 w-4" />} />
-        <StatCard label="Available tractors" value={num(trucks?.data.length ?? 0)} sub="Active power units" icon={<Truck className="h-4 w-4" />} />
-        <StatCard label="Board revenue" value={money((data?.data ?? []).reduce((sum, load) => sum + Number(load.totalRevenue ?? 0), 0))} sub={`${data?.data.length ?? 0} loads on the board`} icon={<CircleDollarSign className="h-4 w-4" />} />
+        <StatCard label="Unassigned Trips" value={num(unassigned)} sub="Need driver & truck" tone={unassigned ? "warning" : "neutral"} icon={<AlertTriangle className="h-4 w-4" />} />
+        <StatCard label="Available Drivers" value={num(drivers?.data?.length ?? 0)} sub="Free & ready to drive" icon={<Users className="h-4 w-4" />} />
+        <StatCard label="Available Trucks" value={num(trucks?.data?.length ?? 0)} sub="Free active fleet" icon={<Truck className="h-4 w-4" />} />
+        <StatCard label="Total Trip Revenue" value={money((data?.data ?? []).reduce((sum, load) => sum + Number(load.totalRevenue ?? 0), 0))} sub={`${data?.data.length ?? 0} active trips`} icon={<CircleDollarSign className="h-4 w-4" />} />
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px] text-ink-500">
-        <span className="font-medium text-ink-700">Resource pool</span>
-        <span className="rounded-full border border-ink-200 bg-white px-2 py-0.5">{trailers?.data.length ?? 0} trailers</span>
-        <span className="rounded-full border border-ink-200 bg-white px-2 py-0.5">{drivers?.data.filter((d) => d.employmentStatus === "Active").length ?? 0} drivers</span>
-        <span className="rounded-full border border-ink-200 bg-white px-2 py-0.5">Open a load to assign</span>
+        <span className="font-medium text-ink-700">{t("Available resource pool")}</span>
+        <span className="rounded-full border border-ink-200 bg-white px-2 py-0.5">{trailers?.data?.length ?? 0} {t("free trailers")}</span>
+        <span className="rounded-full border border-ink-200 bg-white px-2 py-0.5">{drivers?.data?.length ?? 0} {t("free drivers")}</span>
+        <span className="rounded-full border border-ink-200 bg-white px-2 py-0.5">{trucks?.data?.length ?? 0} {t("free trucks")}</span>
+        <span className="rounded-full border border-ink-200 bg-white px-2 py-0.5">{t("Open a load to assign")}</span>
       </div>
 
       {isLoading ? <Card className="mt-4"><LoadingBlock rows={8} /></Card> : (
@@ -86,7 +89,7 @@ export default function DispatchPage() {
             return (
               <div key={column.status} className={`min-w-[260px] rounded-xl border border-ink-100 border-t-2 bg-white/60 ${column.tone}`}>
                 <div className="flex items-center justify-between px-3 py-2.5">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-ink-600">{column.label}</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-ink-600">{t(column.label)}</p>
                   <span className="rounded bg-white px-1.5 py-0.5 font-mono text-[10px] text-ink-500 ring-1 ring-ink-100">{loads.length}</span>
                 </div>
                 <div className="space-y-2 px-2 pb-3">

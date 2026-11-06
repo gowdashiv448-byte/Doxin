@@ -16,11 +16,21 @@ export default async function dashboardRoutes(app: FastifyInstance) {
         (SELECT count(*) FROM loads WHERE load_status = 'DELIVERED' AND delivered_at::date = CURRENT_DATE)::int AS delivered_today,
         (SELECT count(*) FROM loads WHERE load_status = 'EXCEPTION')::int AS exceptions,
         (SELECT COALESCE(sum(revenue + fuel_surcharge + accessorial_charges),0) FROM loads WHERE load_date = CURRENT_DATE) AS revenue_today,
+        (SELECT COALESCE(sum(total_amount),0) FROM db_s3_bill WHERE created_at::date = CURRENT_DATE) AS billed_today,
+        (SELECT COALESCE(sum(gst_amount),0) FROM db_s3_bill WHERE created_at::date = CURRENT_DATE) AS gst_today,
         (SELECT COALESCE(sum(total_cost),0) FROM fuel_purchases WHERE purchase_date >= now() - interval '30 days') AS "fuelSpend30d",
         (SELECT count(*) FROM trucks WHERE status = 'Maintenance')::int
           + (SELECT count(*) FROM maintenance_records WHERE status = 'SCHEDULED' AND maintenance_date <= CURRENT_DATE + 7)::int AS maintenance_due,
-        (SELECT count(*) FROM drivers WHERE employment_status = 'Active')::int AS active_drivers,
-        (SELECT count(*) FROM trucks WHERE status = 'Active')::int AS available_trucks,
+        (SELECT count(*) FROM drivers d WHERE d.employment_status = 'Active'
+           AND NOT EXISTS (
+             SELECT 1 FROM trips tr WHERE tr.driver_id = d.driver_id
+               AND tr.trip_status IN ('PLANNED','DISPATCHED','IN_TRANSIT')
+           ))::int AS active_drivers,
+        (SELECT count(*) FROM trucks t WHERE t.status = 'Active'
+           AND NOT EXISTS (
+             SELECT 1 FROM trips tr WHERE tr.truck_id = t.truck_id
+               AND tr.trip_status IN ('PLANNED','DISPATCHED','IN_TRANSIT')
+           ))::int AS available_trucks,
         (SELECT COALESCE(round(avg(on_time_flag::int)::numeric * 100, 1), 0)
            FROM delivery_events WHERE event_type = 'Delivery' AND actual_datetime >= now() - interval '30 days') AS on_time_rate,
         (SELECT COALESCE(round(avg(utilization_rate)::numeric * 100, 1), 0)
