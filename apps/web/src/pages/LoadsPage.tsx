@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { Download, Filter, Plus, RefreshCw } from "lucide-react";
 import { api } from "../lib/api";
 import { canWrite, useAuth } from "../lib/auth";
+import { useLanguage } from "../lib/language";
 import { Badge, Button, Card, DataTable, EmptyState, LoadingBlock, PageHeader, Pagination, SearchInput, Select, Tabs } from "../components/ui";
 import { LoadDetail } from "../components/LoadDetail";
 import { LoadForm } from "../components/LoadForm";
@@ -13,14 +14,15 @@ import type { Page } from "@doxin/shared";
 type Row = Record<string, any>;
 
 const tabs = [
-  { value: "ALL", label: "All loads" },
+  { value: "ALL", label: "All Trips" },
   { value: "ACTIVE", label: "Active" },
-  { value: "EXCEPTION", label: "Exceptions" },
+  { value: "EXCEPTION", label: "Issues" },
   { value: "HISTORY", label: "History" },
 ];
 
 export default function LoadsPage() {
   const [params, setParams] = useSearchParams();
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const status = params.get("status") ?? "ACTIVE";
   const setStatus = (next: string) => {
@@ -96,14 +98,14 @@ export default function LoadsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Core logistics"
+        eyebrow="Freight Bookings"
         title="Loads"
-        description="Quote, book and move every shipment. Open a load to assign resources and drive it through the workflow."
+        description="All your freight trips in one place. Click a trip to assign truck and driver."
         actions={
           <>
-            <Button variant="ghost" onClick={() => refetch()} loading={isFetching}><RefreshCw className="h-3.5 w-3.5" /> Refresh</Button>
-            <Button variant="secondary" onClick={exportCsv}><Download className="h-3.5 w-3.5" /> Export</Button>
-            {editable ? <Button variant="accent" onClick={() => setNewLoad(true)}><Plus className="h-4 w-4" /> New load</Button> : null}
+            <Button variant="ghost" onClick={() => refetch()} loading={isFetching}><RefreshCw className="h-3.5 w-3.5" /> {t("Refresh")}</Button>
+            <Button variant="secondary" onClick={exportCsv}><Download className="h-3.5 w-3.5" /> {t("Export")}</Button>
+            {editable ? <Button variant="accent" onClick={() => setNewLoad(true)}><Plus className="h-4 w-4" /> {t("New Trip")}</Button> : null}
           </>
         }
       />
@@ -112,9 +114,9 @@ export default function LoadsPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 pt-3">
           <Tabs value={status} onChange={setStatus} tabs={tabs} />
           <div className="flex flex-wrap items-center gap-2 pb-2">
-            <SearchInput value={search} onChange={setSearch} placeholder="Load, customer, lane, driver…" />
+            <SearchInput value={search} onChange={setSearch} placeholder={t("search trips…")} />
             <Select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="w-44">
-              <option value="">All customers</option>
+              <option value="">{t("all")} {t("customers")}</option>
               {customers?.data.map((c) => <option key={c.customerId} value={c.customerId}>{c.customerName}</option>)}
             </Select>
             <div className="flex items-center gap-1 rounded-lg border border-ink-200 bg-white px-1.5">
@@ -131,13 +133,13 @@ export default function LoadsPage() {
             <DataTable>
               <thead>
                 <tr>
-                  <th className="w-[150px]">Load</th>
-                  <th>Customer</th>
-                  <th>Lane</th>
-                  <th>Pickup → delivery</th>
-                  <th className="text-right">Revenue</th>
-                  <th>Status</th>
-                  <th>Driver / unit</th>
+                  <th className="w-[150px]">{t("Load ID")}</th>
+                  <th>{t("Customer")}</th>
+                  <th>{t("Route")}</th>
+                  <th>{t("pickup date")} → {t("target delivery date")}</th>
+                  <th className="text-right">{t("Revenue")}</th>
+                  <th>{t("Status")}</th>
+                  <th>{t("Driver & Truck")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -153,7 +155,7 @@ export default function LoadsPage() {
                     </td>
                     <td>
                       <p className="text-[13px] text-ink-800">{load.originCity}, {load.originState} <span className="text-ink-300">→</span> {load.destinationCity}, {load.destinationState}</p>
-                      <p className="mono text-[10.5px] text-ink-400">{num(load.typicalDistanceMiles)} mi · {load.loadType}</p>
+                      <p className="mono text-[10.5px] text-ink-400">{num(load.typicalDistanceMiles)} km · {load.loadType}</p>
                     </td>
                     <td>
                       <p className="text-[12px] text-ink-600">{date(load.pickupScheduled ?? load.loadDate)}</p>
@@ -161,7 +163,7 @@ export default function LoadsPage() {
                     </td>
                     <td className="text-right">
                       <p className="font-mono text-[13px] font-medium text-ink-900">{money(load.totalRevenue)}</p>
-                      <p className="text-[10.5px] text-ink-400">incl. FSC</p>
+                      <p className="text-[10.5px] text-ink-400">incl. Fuel</p>
                     </td>
                     <td><Badge status={load.loadStatus} /></td>
                     <td>
@@ -170,7 +172,7 @@ export default function LoadsPage() {
                           <p className="text-[12.5px] text-ink-800">{load.driverName}</p>
                           <p className="mono text-[10.5px] text-ink-400">Unit {load.truckUnit ?? "—"}</p>
                         </>
-                      ) : <span className="text-[12px] italic text-ink-400">Unassigned</span>}
+                      ) : <span className="text-[12px] italic text-ink-400">{t("Unassigned")}</span>}
                     </td>
                   </tr>
                 ))}
@@ -180,9 +182,9 @@ export default function LoadsPage() {
           </>
         ) : (
           <EmptyState
-            title={search || customerId || from ? "No loads match those filters" : "No loads here yet"}
-            description={status === "EXCEPTION" ? "Nothing is on fire. The exception queue is clear." : "Create a load or clear the filters to see the board."}
-            action={editable ? <Button variant="accent" onClick={() => setNewLoad(true)}><Plus className="h-4 w-4" /> Create load</Button> : undefined}
+            title={search || customerId || from ? "No trips match those filters" : "No trips yet"}
+            description={status === "EXCEPTION" ? "No issues. All trips are on track." : "Create a trip or clear the filters."}
+            action={editable ? <Button variant="accent" onClick={() => setNewLoad(true)}><Plus className="h-4 w-4" /> New Trip</Button> : undefined}
           />
         )}
       </Card>

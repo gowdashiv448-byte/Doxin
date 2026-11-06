@@ -93,22 +93,25 @@ async function ensureStarterData(tenantId: string) {
     if (Number(count.rows[0]?.count) > 0) return;
 
     console.log("Seeding starter reference data…");
+    const primaryName = tenantId === NORTHWIND_TENANT_ID ? "Northwind Retail" : "Metro Wholesale";
+    const primaryEmail = tenantId === NORTHWIND_TENANT_ID ? "ops@northwind.example" : "ops@metrowholesale.example";
     const customer = await client.query<{ customer_id: string }>(
       `INSERT INTO customers (customer_name, customer_type, credit_terms_days, primary_freight_type, account_status, contract_start_date, annual_revenue_potential, contact_name, contact_email, contact_phone)
-     VALUES ('Northwind Retail','Contract',30,'Retail','Active',CURRENT_DATE - 400,4800000,'Jordan Blake','ops@northwind.example','+1 312 555 0142') RETURNING customer_id`,
+     VALUES ($1,'Contract',30,'Retail','Active',CURRENT_DATE - 400,39840000,'Rajesh Sharma',$2,'+91 98765 43210') RETURNING customer_id`,
+      [primaryName, primaryEmail],
     );
     const customerId = customer.rows[0]!.customer_id;
     await client.query(
       `INSERT INTO customers (customer_name, customer_type, credit_terms_days, primary_freight_type, account_status, contract_start_date, annual_revenue_potential)
-     VALUES ('Cascade Foods','Dedicated',45,'Food/Beverage','Active',CURRENT_DATE - 300,3200000),
-            ('Atlas Industrial','Spot',15,'General','Active',CURRENT_DATE - 120,900000)`,
+     VALUES ('Amul Dairy Products','Dedicated',45,'Food/Beverage','Active',CURRENT_DATE - 300,26560000),
+            ('Tata Steel Logistics','Spot',15,'General','Active',CURRENT_DATE - 120,7470000)`,
     );
     const lanes = [
-      ["Chicago", "IL", "Columbus", "OH", 355, 2.15, 0.24, 1],
-      ["Dallas", "TX", "Atlanta", "GA", 780, 1.92, 0.21, 2],
-      ["Seattle", "WA", "Denver", "CO", 1315, 2.28, 0.25, 3],
-      ["Kansas City", "MO", "Detroit", "MI", 700, 2.02, 0.22, 2],
-      ["Houston", "TX", "Nashville", "TN", 790, 1.98, 0.2, 2],
+      ["Mumbai", "MH", "Pune", "MH", 150, 55.00, 6.00, 1],
+      ["Delhi", "DL", "Jaipur", "RJ", 285, 48.00, 5.50, 1],
+      ["Bangalore", "KA", "Chennai", "TN", 345, 52.00, 5.80, 1],
+      ["Hyderabad", "TG", "Vijayawada", "AP", 275, 45.00, 5.20, 1],
+      ["Ahmedabad", "GJ", "Surat", "GJ", 265, 42.00, 4.80, 1],
     ];
     for (const lane of lanes) {
       await client.query(
@@ -119,102 +122,102 @@ async function ensureStarterData(tenantId: string) {
     }
     const facilities = [
       [
-        "Chicago Cross-Dock",
+        "Mumbai Cross-Dock",
         "Cross-Dock",
-        "Chicago",
-        "IL",
-        41.8781,
-        -87.6298,
+        "Mumbai",
+        "MH",
+        19.0760,
+        72.8777,
         64,
         "24/7",
       ],
       [
-        "Columbus Distribution Center",
+        "Pune Distribution Center",
         "Distribution Center",
-        "Columbus",
-        "OH",
-        39.9612,
-        -82.9988,
+        "Pune",
+        "MH",
+        18.5204,
+        73.8567,
         48,
         "6AM-10PM",
       ],
       [
-        "Dallas Terminal",
+        "Delhi Terminal",
         "Terminal",
-        "Dallas",
-        "TX",
-        32.7767,
-        -96.797,
+        "Delhi",
+        "DL",
+        28.7041,
+        77.1025,
         36,
         "24/7",
       ],
       [
-        "Atlanta Warehouse",
+        "Jaipur Warehouse",
         "Warehouse",
-        "Atlanta",
-        "GA",
-        33.749,
-        -84.388,
+        "Jaipur",
+        "RJ",
+        26.9124,
+        75.7873,
         28,
         "7AM-7PM",
       ],
       [
-        "Seattle Hub",
+        "Bangalore Hub",
         "Cross-Dock",
-        "Seattle",
-        "WA",
-        47.6062,
-        -122.3321,
+        "Bangalore",
+        "KA",
+        12.9716,
+        77.5946,
         40,
         "24/7",
       ],
       [
-        "Denver Terminal",
+        "Chennai Depot",
         "Terminal",
-        "Denver",
-        "CO",
-        39.7392,
-        -104.9903,
+        "Chennai",
+        "TN",
+        13.0827,
+        80.2707,
         32,
         "6AM-10PM",
       ],
       [
-        "Kansas City Hub",
+        "Hyderabad Hub",
         "Cross-Dock",
-        "Kansas City",
-        "MO",
-        39.0997,
-        -94.5786,
+        "Hyderabad",
+        "TG",
+        17.3850,
+        78.4867,
         30,
         "24/7",
       ],
       [
-        "Detroit Distribution Center",
+        "Ahmedabad Distribution Center",
         "Distribution Center",
-        "Detroit",
-        "MI",
-        42.3314,
-        -83.0458,
+        "Ahmedabad",
+        "GJ",
+        23.0225,
+        72.5714,
         22,
         "7AM-7PM",
       ],
       [
-        "Houston Terminal",
+        "Surat Terminal",
         "Terminal",
-        "Houston",
-        "TX",
-        29.7604,
-        -95.3698,
+        "Surat",
+        "GJ",
+        21.1702,
+        72.8311,
         26,
         "24/7",
       ],
       [
-        "Nashville Warehouse",
+        "Kolkata Warehouse",
         "Warehouse",
-        "Nashville",
-        "TN",
-        36.1627,
-        -86.7816,
+        "Kolkata",
+        "WB",
+        22.5726,
+        88.3639,
         18,
         "8AM-5PM",
       ],
@@ -227,16 +230,16 @@ async function ensureStarterData(tenantId: string) {
       );
     }
     const driverNames: [string, string, string][] = [
-      ["Marcus", "Reed", "TX"],
-      ["Elena", "Petrov", "IL"],
-      ["Darnell", "King", "GA"],
-      ["Sofia", "Alvarez", "CO"],
-      ["Owen", "Bennett", "OH"],
-      ["Nadia", "Hassan", "WA"],
-      ["Victor", "Ramos", "MO"],
-      ["Grace", "Kim", "MI"],
-      ["Andre", "Cole", "TN"],
-      ["Leah", "Brooks", "TX"],
+      ["Ravi", "Kumar", "MH"],
+      ["Suresh", "Patel", "GJ"],
+      ["Amit", "Singh", "DL"],
+      ["Rajesh", "Sharma", "RJ"],
+      ["Vijay", "Yadav", "UP"],
+      ["Mohan", "Verma", "KA"],
+      ["Deepak", "Nair", "KL"],
+      ["Sanjay", "Gupta", "MH"],
+      ["Arvind", "Mishra", "TN"],
+      ["Prakash", "Reddy", "TG"],
     ];
     for (const [first, last, state] of driverNames) {
       await client.query(
@@ -250,31 +253,31 @@ async function ensureStarterData(tenantId: string) {
           `DL${Math.floor(Math.random() * 900000000 + 100000000)}`,
           state,
           [
-            "Dallas",
-            "Chicago",
-            "Atlanta",
-            "Denver",
-            "Columbus",
-            "Seattle",
-            "Kansas City",
-            "Detroit",
-            "Nashville",
-            "Houston",
+            "Mumbai",
+            "Ahmedabad",
+            "Delhi",
+            "Jaipur",
+            "Pune",
+            "Bangalore",
+            "Hyderabad",
+            "Ahmedabad",
+            "Chennai",
+            "Surat",
           ][driverNames.findIndex((d) => d[0] === first)],
-          `+1 555 01${String(Math.floor(Math.random() * 90) + 10)}`,
+          `+91 98${String(Math.floor(Math.random() * 90000000 + 10000000))}`,
           `${first.toLowerCase()}.${last.toLowerCase()}@doxin.example`,
         ],
       );
     }
     const trucks = [
-      ["4101", "Freightliner", "Cascadia", 2022, "Dallas"],
-      ["4102", "Kenworth", "T680", 2021, "Chicago"],
-      ["4103", "Volvo", "VNL", 2022, "Atlanta"],
-      ["4104", "Peterbilt", "579", 2020, "Denver"],
-      ["4105", "Freightliner", "Cascadia", 2023, "Columbus"],
-      ["4106", "Mack", "Anthem", 2020, "Seattle"],
-      ["4107", "International", "LT", 2021, "Kansas City"],
-      ["4108", "Kenworth", "T680", 2022, "Detroit"],
+      ["4101", "Ashok Leyland", "Captain", 2022, "Mumbai"],
+      ["4102", "Tata Motors", "Prima", 2021, "Delhi"],
+      ["4103", "Mahindra", "Blazo", 2022, "Bangalore"],
+      ["4104", "Eicher", "Pro 6031", 2020, "Chennai"],
+      ["4105", "Ashok Leyland", "Captain", 2023, "Pune"],
+      ["4106", "BharatBenz", "2823R", 2020, "Hyderabad"],
+      ["4107", "Tata Motors", "Signa", 2021, "Ahmedabad"],
+      ["4108", "Mahindra", "Blazo", 2022, "Surat"],
     ];
     for (const [unit, make, model, year, terminal] of trucks) {
       await client.query(
@@ -298,7 +301,7 @@ async function ensureStarterData(tenantId: string) {
           i % 3 === 0 ? "Refrigerated" : "Dry Van",
           2021 + (i % 3),
           `1TR${Math.floor(Math.random() * 9_000_000_000_000_000 + 1_000_000_000_000_000)}`,
-          "Chicago",
+          "Mumbai",
         ],
       );
     }
@@ -511,7 +514,7 @@ async function ensureLiveOperations(tenantId: string) {
     }
     await client.query(
       `INSERT INTO maintenance_records (truck_id, maintenance_date, maintenance_type, odometer_reading, labor_hours, labor_cost, parts_cost, total_cost, facility_location, downtime_hours, service_description, status)
-     SELECT truck_id, CURRENT_DATE + 3, 'Preventive', current_odometer, 3, 240, 380, 620, home_terminal, 6, 'Scheduled PM service', 'SCHEDULED'
+     SELECT truck_id, CURRENT_DATE + 3, 'Preventive', current_odometer, 3, 20000, 31500, 51500, home_terminal, 6, 'Scheduled PM service', 'SCHEDULED'
      FROM trucks WHERE status = 'Active' ORDER BY truck_id LIMIT 2`,
     );
     console.log("✓ live operations seeded");
@@ -530,8 +533,8 @@ async function ensureLiveFuel(tenantId: string) {
      SELECT t.trip_id, t.truck_id, t.driver_id,
             now() - (interval '1 day' * (row_number() OVER (ORDER BY t.trip_id) % 5)),
             r.origin_city, r.origin_state,
-            round(t.fuel_gallons_used, 2), 3.879,
-            round(t.fuel_gallons_used * 3.879, 2)
+            round(t.fuel_gallons_used, 2), 92.5,
+            round(t.fuel_gallons_used * 92.5, 2)
      FROM trips t
      JOIN loads l ON l.load_id = t.load_id
      JOIN routes r ON r.route_id = l.route_id

@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { CheckCircle2, Circle, Clock, ExternalLink, Fuel, MapPin, Package, Plus, TriangleAlert, User, X } from "lucide-react";
+import { CheckCircle2, Circle, Clock, ExternalLink, Fuel, MapPin, Package, Plus, TriangleAlert, User, X, Download, FileText, Mail, Send, Receipt, Eye } from "lucide-react";
 import { LOAD_ACTIONS, type LoadAction } from "@doxin/shared";
 import { api, ApiError } from "../lib/api";
 import { useAuth, canWrite } from "../lib/auth";
 import { useToast } from "../lib/toast";
+import { useLanguage } from "../lib/language";
 import { Badge, Button, Card, Drawer, Field, Input, Select, Textarea } from "./ui";
+import { PdfViewerModal } from "./PdfViewerModal";
 import { date, dateTime, money, num, titleCase } from "../lib/format";
 
 type Row = Record<string, any>;
@@ -18,20 +20,60 @@ export function LoadDetail({ loadId, onClose }: { loadId: string; onClose: () =>
   const queryClient = useQueryClient();
   const toast = useToast();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const editable = canWrite(user?.role, "dispatch");
   const [assignOpen, setAssignOpen] = useState(false);
   const [exceptionOpen, setExceptionOpen] = useState(false);
   const [eventOpen, setEventOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
+  const [viewingPdf, setViewingPdf] = useState<{
+    open: boolean;
+    endpoint?: string;
+    title?: string;
+    filename?: string;
+  } | null>(null);
+
+  const generateBillMutation = useMutation({
+    mutationFn: () => api.post(`/api/accounting/bills/generate/${loadId}`),
+    onSuccess: () => {
+      toast.success("Invoice generated and emailed to customer");
+      queryClient.invalidateQueries({ queryKey: ["load", loadId] });
+      queryClient.invalidateQueries({ queryKey: ["loads"] });
+      queryClient.invalidateQueries({ queryKey: ["bills"] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to generate invoice");
+    },
+  });
+
+  const resendEmailMutation = useMutation({
+    mutationFn: (billId: string) => api.post(`/api/accounting/bills/${billId}/resend-email`),
+    onSuccess: () => {
+      toast.success("Invoice receipt email sent successfully");
+      queryClient.invalidateQueries({ queryKey: ["load", loadId] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to resend email");
+    },
+  });
 
   const { data: load, isLoading } = useQuery({
     queryKey: ["load", loadId],
     queryFn: () => api.get<Row>(`/api/loads/${loadId}`),
   });
-  const { data: drivers } = useQuery({ queryKey: ["drivers", "options"], queryFn: () => api.get<Page<Row>>("/api/drivers", { pageSize: 200, employmentStatus: "Active" }) });
-  const { data: trucks } = useQuery({ queryKey: ["trucks", "options"], queryFn: () => api.get<Page<Row>>("/api/trucks", { pageSize: 200 }) });
-  const { data: trailers } = useQuery({ queryKey: ["trailers", "options"], queryFn: () => api.get<Page<Row>>("/api/trailers", { pageSize: 200 }) });
+  const { data: drivers } = useQuery({
+    queryKey: ["drivers", "assign-options", loadId],
+    queryFn: () => api.get<Page<Row>>("/api/drivers", { pageSize: 200, available: "true", forLoadId: loadId }),
+  });
+  const { data: trucks } = useQuery({
+    queryKey: ["trucks", "assign-options", loadId],
+    queryFn: () => api.get<Page<Row>>("/api/trucks", { pageSize: 200, available: "true", forLoadId: loadId }),
+  });
+  const { data: trailers } = useQuery({
+    queryKey: ["trailers", "assign-options", loadId],
+    queryFn: () => api.get<Page<Row>>("/api/trailers", { pageSize: 200, available: "true", forLoadId: loadId }),
+  });
   const { data: facilities } = useQuery({ queryKey: ["facilities", "options"], queryFn: () => api.get<Page<Row>>("/api/facilities", { pageSize: 100 }) });
 
   const [assignment, setAssignment] = useState({ driverId: "", truckId: "", trailerId: "" });
@@ -50,6 +92,9 @@ export function LoadDetail({ loadId, onClose }: { loadId: string; onClose: () =>
     void queryClient.invalidateQueries({ queryKey: ["loads"] });
     void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     void queryClient.invalidateQueries({ queryKey: ["trips"] });
+    void queryClient.invalidateQueries({ queryKey: ["drivers"] });
+    void queryClient.invalidateQueries({ queryKey: ["trucks"] });
+    void queryClient.invalidateQueries({ queryKey: ["trailers"] });
   };
 
   const action = useMutation({
@@ -91,7 +136,8 @@ export function LoadDetail({ loadId, onClose }: { loadId: string; onClose: () =>
   const exception = load?.loadStatus === "EXCEPTION";
 
   return (
-    <Drawer open onClose={onClose} width="max-w-[760px]">
+    <>
+      <Drawer open onClose={onClose} width="max-w-[760px]">
       {isLoading || !load ? (
         <div className="p-6"><div className="skeleton h-8 w-48" /><div className="skeleton mt-4 h-32 w-full" /></div>
       ) : (
@@ -102,7 +148,7 @@ export function LoadDetail({ loadId, onClose }: { loadId: string; onClose: () =>
                 <div className="flex items-center gap-2.5">
                   <span className="mono text-[13px] font-medium text-ink-500">{load.loadId}</span>
                   <Badge status={load.loadStatus} />
-                  {exception ? <span className="badge bg-red-50 text-red-700 ring-1 ring-inset ring-red-100"><TriangleAlert className="h-3 w-3" /> Needs attention</span> : null}
+                  {exception ? <span className="badge bg-red-50 text-red-700 ring-1 ring-inset ring-red-100"><TriangleAlert className="h-3 w-3" /> {t("Needs attention")}</span> : null}
                 </div>
                 <h2 className="mt-1.5 text-xl font-semibold tracking-tight text-ink-900">{load.customerName}</h2>
                 <p className="mt-0.5 text-[13px] text-ink-500">
@@ -121,7 +167,7 @@ export function LoadDetail({ loadId, onClose }: { loadId: string; onClose: () =>
                   <div key={step} className="flex items-center gap-1.5">
                     <span className={`flex items-center gap-1 rounded-full px-2 py-1 text-[10.5px] font-medium ${done ? "bg-ink-900 text-white" : "bg-ink-50 text-ink-400"}`}>
                       {done ? <CheckCircle2 className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
-                      {titleCase(step)}
+                      {t(titleCase(step))}
                     </span>
                     {index < STEPS.length - 1 ? <span className={`h-px w-2 ${done ? "bg-ink-300" : "bg-ink-100"}`} /> : null}
                   </div>
@@ -132,21 +178,21 @@ export function LoadDetail({ loadId, onClose }: { loadId: string; onClose: () =>
             <div className="mt-4 flex flex-wrap gap-2">
               {available.map(([name, rule]) => {
                 if (name === "plan") {
-                  return <Button key={name} variant="primary" size="sm" onClick={() => setAssignOpen(true)} disabled={!editable}>{load.tripId ? "Update assignment" : "Assign resources"}</Button>;
+                  return <Button key={name} variant="primary" size="sm" onClick={() => setAssignOpen(true)} disabled={!editable}>{load.tripId ? t("Change Truck & Driver") : t("Assign Truck & Driver")}</Button>;
                 }
                 if (name === "flag_exception") {
-                  return <Button key={name} variant="danger" size="sm" onClick={() => setExceptionOpen(true)} disabled={!editable}>Flag exception</Button>;
+                  return <Button key={name} variant="danger" size="sm" onClick={() => setExceptionOpen(true)} disabled={!editable}>{t("Report Issue")}</Button>;
                 }
                 if (name === "cancel") {
-                  return <Button key={name} variant="ghost" size="sm" disabled={!editable} onClick={() => { if (window.confirm("Cancel this load? This cannot be undone.")) run("cancel"); }}>Cancel</Button>;
+                  return <Button key={name} variant="ghost" size="sm" disabled={!editable} onClick={() => { if (window.confirm("Cancel this trip? This cannot be undone.")) run("cancel"); }}>{t("Cancel")}</Button>;
                 }
                 if (name === "complete") {
-                  return <Button key={name} variant="primary" size="sm" disabled={!editable} onClick={() => { if (window.confirm("Close this load? Financials will be locked.")) run("complete"); }}>Close load</Button>;
+                  return <Button key={name} variant="primary" size="sm" disabled={!editable} onClick={() => { if (window.confirm("Mark this trip as completed and generate bill?")) run("complete"); }}>{t("Complete Trip")}</Button>;
                 }
-                return <Button key={name} variant={name === "dispatch" ? "accent" : "primary"} size="sm" disabled={!editable} onClick={() => run(name as LoadAction)}>{rule.label}</Button>;
+                return <Button key={name} variant={name === "dispatch" ? "accent" : "primary"} size="sm" disabled={!editable} onClick={() => run(name as LoadAction)}>{t(rule.label)}</Button>;
               })}
               <Button variant="secondary" size="sm" onClick={() => setEventOpen(true)} disabled={!editable}>
-                <MapPin className="h-3.5 w-3.5" /> Record event
+                <MapPin className="h-3.5 w-3.5" /> {t("Record stop")}
               </Button>
             </div>
             {error ? <p className="mt-2 rounded bg-red-50 px-2 py-1.5 text-[12px] text-red-700">{error}</p> : null}
@@ -155,10 +201,10 @@ export function LoadDetail({ loadId, onClose }: { loadId: string; onClose: () =>
           <div className="flex-1 overflow-y-auto">
             <div className="grid grid-cols-2 gap-px border-b border-ink-100 bg-ink-100 sm:grid-cols-4">
               {[
-                { label: "Total revenue", value: money(totalRevenue, 2) },
-                { label: "Fuel cost", value: money(fuelCost, 2) },
-                { label: "Margin*", value: money(margin, 2) },
-                { label: "Distance", value: `${num(load.actualDistanceMiles ?? load.typicalDistanceMiles)} mi` },
+                { label: t("Total Revenue"), value: money(totalRevenue, 2) },
+                { label: t("Fuel Cost"), value: money(fuelCost, 2) },
+                { label: t("Profit"), value: money(margin, 2) },
+                { label: t("Distance"), value: `${num(load.actualDistanceMiles ?? load.typicalDistanceMiles)} km` },
               ].map((item) => (
                 <div key={item.label} className="bg-white px-4 py-3">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.09em] text-ink-400">{item.label}</p>
@@ -170,19 +216,19 @@ export function LoadDetail({ loadId, onClose }: { loadId: string; onClose: () =>
             <div className="grid gap-4 p-5 lg:grid-cols-5">
               <div className="lg:col-span-3 space-y-4">
                 <Card className="p-4">
-                  <h3 className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-ink-900"><Package className="h-4 w-4 text-ink-400" /> Shipment</h3>
+                  <h3 className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-ink-900"><Package className="h-4 w-4 text-ink-400" /> {t("Trip Details")}</h3>
                   <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-[12px]">
                     {[
-                      ["Load date", date(load.loadDate)],
-                      ["Target delivery", date(load.targetDeliveryDate)],
-                      ["Equipment", load.loadType],
-                      ["Booking", load.bookingType],
-                      ["Weight", load.weightLbs ? `${num(load.weightLbs)} lbs` : "—"],
-                      ["Pieces", load.pieces ? num(load.pieces) : "—"],
-                      ["Linehaul", money(load.revenue, 2)],
-                      ["Fuel surcharge", money(load.fuelSurcharge, 2)],
-                      ["Accessorials", money(load.accessorialCharges, 2)],
-                      ["PO / reference", load.poNumber || "—"],
+                      [t("Pickup Date"), date(load.loadDate)],
+                      [t("Target Delivery"), date(load.targetDeliveryDate)],
+                      [t("Vehicle Type"), load.loadType],
+                      [t("Booking Type"), load.bookingType],
+                      [t("Weight"), load.weightLbs ? `${num(load.weightLbs)} kg` : "—"],
+                      [t("Pieces / Boxes"), load.pieces ? num(load.pieces) : "—"],
+                      [t("Freight Amount"), money(load.revenue, 2)],
+                      [t("Fuel Extra"), money(load.fuelSurcharge, 2)],
+                      [t("Other Charges"), money(load.accessorialCharges, 2)],
+                      [t("PO / Bilty No."), load.poNumber || "—"],
                     ].map(([label, value]) => (
                       <div key={label} className="flex justify-between gap-2">
                         <dt className="text-ink-500">{label}</dt>
@@ -195,8 +241,8 @@ export function LoadDetail({ loadId, onClose }: { loadId: string; onClose: () =>
 
                 <Card className="p-4">
                   <div className="mb-3 flex items-center justify-between">
-                    <h3 className="flex items-center gap-2 text-[13px] font-semibold text-ink-900"><Clock className="h-4 w-4 text-ink-400" /> Delivery events</h3>
-                    <button onClick={() => setEventOpen(true)} disabled={!editable} className="text-[11px] font-medium text-signal-600 hover:text-signal-700">+ Add event</button>
+                    <h3 className="flex items-center gap-2 text-[13px] font-semibold text-ink-900"><Clock className="h-4 w-4 text-ink-400" /> {t("Delivery events")}</h3>
+                    <button onClick={() => setEventOpen(true)} disabled={!editable} className="text-[11px] font-medium text-signal-600 hover:text-signal-700">+ {t("Add event")}</button>
                   </div>
                   {load.events.length ? (
                     <div className="space-y-3">
@@ -237,6 +283,146 @@ export function LoadDetail({ loadId, onClose }: { loadId: string; onClose: () =>
               </div>
 
               <div className="space-y-4 lg:col-span-2">
+                {load.bill ? (
+                  <Card className="border-emerald-200/80 bg-emerald-50/15 p-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="flex items-center gap-2 text-[13px] font-semibold text-ink-900">
+                        <Receipt className="h-4 w-4 text-emerald-600" /> Tax Invoice
+                      </h3>
+                      <Badge tone="success">{load.bill.billId}</Badge>
+                    </div>
+
+                    <dl className="mt-3 space-y-2 text-[12px]">
+                      <div className="flex justify-between">
+                        <dt className="text-ink-500">Dispatcher</dt>
+                        <dd className="font-medium text-ink-800">{load.bill.dispatcherCompanyName}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-ink-500">Customer Email</dt>
+                        <dd className="font-medium text-ink-800">{load.bill.recipientEmail || "None on file"}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-ink-500">Subtotal</dt>
+                        <dd className="font-mono text-ink-800">{money(load.bill.subtotal, 2)}</dd>
+                      </div>
+                      <div className="flex justify-between font-semibold text-amber-800">
+                        <dt>GST (18%)</dt>
+                        <dd className="font-mono">+{money(load.bill.gstAmount, 2)}</dd>
+                      </div>
+                      <div className="flex justify-between border-t border-ink-200/60 pt-2 font-bold text-ink-900">
+                        <dt>Total Due</dt>
+                        <dd className="font-mono text-[13px] text-signal-700">{money(load.bill.totalAmount, 2)}</dd>
+                      </div>
+                    </dl>
+
+                    {/* Invoice Download & Customer Email Status */}
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-ink-100 pt-3">
+                      <div className="flex items-center gap-1.5 text-[11.5px]">
+                        <Mail className="h-3.5 w-3.5 text-ink-400" />
+                        <span className="text-ink-500">Receipt:</span>
+                        <Badge tone={load.bill.emailStatus === "SENT" ? "success" : load.bill.emailStatus === "FAILED" ? "danger" : "neutral"}>
+                          {load.bill.emailStatus === "SENT" ? "Sent to customer" : load.bill.emailStatus === "FAILED" ? "Failed to send" : "Not sent"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() =>
+                            setViewingPdf({
+                              open: true,
+                              endpoint: `/api/accounting/bills/${load.bill.billId}/pdf`,
+                              title: `Invoice ${load.bill.billId} · ${load.customerName}`,
+                              filename: `Invoice-${load.bill.billId}.pdf`,
+                            })
+                          }
+                          className="inline-flex items-center gap-1 text-[11px]"
+                          title="View invoice PDF in browser"
+                        >
+                          <Eye className="h-3.5 w-3.5" /> {t("View PDF")}
+                        </Button>
+                        <a
+                          href={api.getAuthenticatedUrl(`/api/accounting/bills/${load.bill.billId}/pdf`)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn-secondary btn-sm inline-flex items-center gap-1 text-[11px]"
+                        >
+                          <Download className="h-3 w-3" /> {t("Download PDF")}
+                        </a>
+                        {load.bill.recipientEmail ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            loading={resendEmailMutation.isPending}
+                            onClick={() => resendEmailMutation.mutate(load.bill.billId)}
+                            title="Resend invoice email to customer"
+                            className="text-[11px]"
+                          >
+                            <Send className="h-3 w-3" />
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                  </Card>
+                ) : (load.loadStatus === "DELIVERED" || load.loadStatus === "COMPLETED") ? (
+                  <Card className="border-dashed border-ink-300 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h4 className="text-[13px] font-semibold text-ink-900">{t("delivered")}</h4>
+                        <p className="text-[11px] text-ink-500">Create invoice with itemized charges and 18% GST</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() =>
+                            setViewingPdf({
+                              open: true,
+                              endpoint: `/api/accounting/bills/preview/${load.loadId}/pdf`,
+                              title: `Invoice Preview · ${load.loadId}`,
+                              filename: `Invoice-Preview-${load.loadId}.pdf`,
+                            })
+                          }
+                        >
+                          <Eye className="h-3.5 w-3.5" /> {t("View PDF")}
+                        </Button>
+                        <Button
+                          variant="accent"
+                          size="sm"
+                          loading={generateBillMutation.isPending}
+                          onClick={() => generateBillMutation.mutate()}
+                        >
+                          <FileText className="h-3.5 w-3.5" /> {t("Generate bill")}
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ) : (
+                  <Card className="border-dashed border-ink-200 bg-ink-50/30 p-3.5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[12.5px] font-medium text-ink-800">Tax Invoice (Pending Delivery)</p>
+                        <p className="text-[11px] text-ink-500">Preview draft invoice with calculated 18% GST</p>
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() =>
+                          setViewingPdf({
+                            open: true,
+                            endpoint: `/api/accounting/bills/preview/${load.loadId}/pdf`,
+                            title: `Draft Invoice Preview · ${load.loadId}`,
+                            filename: `Draft-Invoice-${load.loadId}.pdf`,
+                          })
+                        }
+                        className="text-[11px]"
+                      >
+                        <Eye className="h-3.5 w-3.5" /> {t("View PDF")}
+                      </Button>
+                    </div>
+                  </Card>
+                )}
+
                 <Card className="p-4">
                   <h3 className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-ink-900"><User className="h-4 w-4 text-ink-400" /> Assignment</h3>
                   {load.tripId ? (
@@ -257,13 +443,13 @@ export function LoadDetail({ loadId, onClose }: { loadId: string; onClose: () =>
                   ) : <p className="text-[12px] text-ink-400">No driver or equipment assigned.</p>}
                   {(load.loadStatus === "BOOKED" || load.loadStatus === "PLANNED" || load.loadStatus === "EXCEPTION") && editable ? (
                     <Button variant="secondary" size="sm" className="mt-3 w-full" onClick={() => setAssignOpen(true)}>
-                      {load.tripId ? "Change assignment" : "Assign driver & equipment"}
+                      {load.tripId ? t("Change Truck & Driver") : t("Assign Truck & Driver")}
                     </Button>
                   ) : null}
                 </Card>
 
                 <Card className="p-4">
-                  <h3 className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-ink-900"><Fuel className="h-4 w-4 text-ink-400" /> Fuel purchases</h3>
+                  <h3 className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-ink-900"><Fuel className="h-4 w-4 text-ink-400" /> {t("Fuel expenses")}</h3>
                   {load.fuelPurchases?.length ? (
                     <div className="space-y-2">
                       {load.fuelPurchases.slice(0, 5).map((fuel: Row) => (
@@ -273,66 +459,96 @@ export function LoadDetail({ loadId, onClose }: { loadId: string; onClose: () =>
                         </div>
                       ))}
                     </div>
-                  ) : <p className="text-[12px] text-ink-400">No fuel receipts linked.</p>}
+                  ) : <p className="text-[12px] text-ink-400">{t("No fuel receipts linked.")}</p>}
                 </Card>
 
                 <Card className="p-4">
-                  <h3 className="mb-2 text-[13px] font-semibold text-ink-900">Activity</h3>
+                  <h3 className="mb-2 text-[13px] font-semibold text-ink-900">{t("recent trips")}</h3>
                   <div className="space-y-2">
                     {load.timeline?.length ? load.timeline.slice(0, 6).map((item: Row) => (
                       <div key={item.id} className="text-[11.5px]">
-                        <p className="font-medium text-ink-700">{titleCase(item.action)}</p>
+                        <p className="font-medium text-ink-700">{t(titleCase(item.action))}</p>
                         <p className="text-ink-400">{item.actorName} · {dateTime(item.createdAt)}</p>
                       </div>
-                    )) : <p className="text-[12px] text-ink-400">No activity yet.</p>}
+                    )) : <p className="text-[12px] text-ink-400">{t("No activity yet.")}</p>}
                   </div>
                 </Card>
               </div>
             </div>
-            <p className="px-5 pb-5 text-[10.5px] text-ink-400">* Estimated contribution margin = revenue − fuel cost. Driver pay, tolls and allocated maintenance are not included.</p>
+            <p className="px-5 pb-5 text-[10.5px] text-ink-400">{t("* Estimated contribution margin = revenue − fuel cost. Driver pay, tolls and allocated maintenance are not included.")}</p>
           </div>
 
           {assignOpen ? (
             <div className="absolute inset-0 z-20 flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-ink-950/35" onClick={() => setAssignOpen(false)} />
               <div className="relative w-full max-w-md rounded-xl bg-white p-5 shadow-lift animate-rise">
-                <h3 className="text-[15px] font-semibold text-ink-900">Assign driver & equipment</h3>
-                <p className="mt-0.5 text-[12px] text-ink-500">Only active, available resources are shown.</p>
+                <h3 className="text-[15px] font-semibold text-ink-900">{load.tripId ? t("Change Truck & Driver") : t("Assign Truck & Driver")}</h3>
+                <p className="mt-0.5 text-[12px] text-ink-500">{t("Only free and available resources not on active trips are shown.")}</p>
                 <div className="mt-4 space-y-3">
-                  <Field label="Driver">
+                  <Field label={t("Driver")}>
                     <Select value={assignment.driverId} onChange={(e) => setAssignment((a) => ({ ...a, driverId: e.target.value }))}>
-                      <option value="">Select driver…</option>
-                      {drivers?.data.filter((d) => d.employmentStatus === "Active").map((d) => <option key={d.driverId} value={d.driverId}>{d.firstName} {d.lastName} · {d.homeTerminal}</option>)}
+                      <option value="">{t("Select driver…")}</option>
+                      {assignment.driverId && !drivers?.data?.some((d) => d.driverId === assignment.driverId) && (
+                        <option value={assignment.driverId}>
+                          {load.trip?.driverName || load.driverName || assignment.driverId} ({t("Current")})
+                        </option>
+                      )}
+                      {drivers?.data?.map((d) => (
+                        <option key={d.driverId} value={d.driverId}>
+                          {d.firstName} {d.lastName} · {d.homeTerminal}{d.driverId === (load.trip?.driverId ?? load.driverId) ? ` (${t("Current")})` : ""}
+                        </option>
+                      ))}
+                      {!drivers?.data?.length && !assignment.driverId && <option value="" disabled>{t("No free drivers available (all on duty)")}</option>}
                     </Select>
                   </Field>
-                  <Field label="Truck">
+                  <Field label={t("Truck")}>
                     <Select value={assignment.truckId} onChange={(e) => setAssignment((a) => ({ ...a, truckId: e.target.value }))}>
-                      <option value="">Select tractor…</option>
-                      {trucks?.data.filter((t) => t.status === "Active").map((t) => <option key={t.truckId} value={t.truckId}>Unit {t.unitNumber} · {t.make} {t.modelYear}</option>)}
+                      <option value="">{t("Select truck…")}</option>
+                      {assignment.truckId && !trucks?.data?.some((t) => t.truckId === assignment.truckId) && (
+                        <option value={assignment.truckId}>
+                          Unit {load.trip?.truckUnit || load.truckUnit || assignment.truckId} ({t("Current")})
+                        </option>
+                      )}
+                      {trucks?.data?.map((trk) => (
+                        <option key={trk.truckId} value={trk.truckId}>
+                          Unit {trk.unitNumber} · {trk.make} {trk.modelYear}{trk.truckId === (load.trip?.truckId ?? load.truckId) ? ` (${t("Current")})` : ""}
+                        </option>
+                      ))}
+                      {!trucks?.data?.length && !assignment.truckId && <option value="" disabled>{t("No free trucks available (all on trips)")}</option>}
                     </Select>
                   </Field>
-                  <Field label="Trailer">
+                  <Field label={t("Trailer")}>
                     <Select value={assignment.trailerId} onChange={(e) => setAssignment((a) => ({ ...a, trailerId: e.target.value }))}>
-                      <option value="">Select trailer…</option>
-                      {trailers?.data.filter((t) => t.status === "Active").map((t) => <option key={t.trailerId} value={t.trailerId}>{t.trailerNumber} · {t.trailerType}</option>)}
+                      <option value="">{t("Select trailer…")}</option>
+                      {assignment.trailerId && !trailers?.data?.some((d) => d.trailerId === assignment.trailerId) && (
+                        <option value={assignment.trailerId}>
+                          {load.trip?.trailerNumber || load.trailerNumber || assignment.trailerId} ({t("Current")})
+                        </option>
+                      )}
+                      {trailers?.data?.map((trl) => (
+                        <option key={trl.trailerId} value={trl.trailerId}>
+                          {trl.trailerNumber} · {trl.trailerType}{trl.trailerId === (load.trip?.trailerId ?? load.trailerId) ? ` (${t("Current")})` : ""}
+                        </option>
+                      ))}
+                      {!trailers?.data?.length && !assignment.trailerId && <option value="" disabled>{t("No free trailers available (all on trips)")}</option>}
                     </Select>
                   </Field>
                 </div>
-                {error ? <p className="mt-2 text-[12px] text-red-700">{error}</p> : null}
+                {error ? <p className="mt-2 text-[12px] text-red-700">{t(error)}</p> : null}
                 <div className="mt-4 flex justify-end gap-2">
-                  <Button variant="ghost" onClick={() => setAssignOpen(false)}>Cancel</Button>
+                  <Button variant="ghost" onClick={() => setAssignOpen(false)}>{t("Cancel")}</Button>
                   <Button
                     variant="primary"
                     loading={action.isPending}
                     onClick={() => {
                       if (!assignment.driverId || !assignment.truckId || !assignment.trailerId) {
-                        setError("Select a driver, truck and trailer");
+                        setError(t("Select a driver, truck and trailer"));
                         return;
                       }
                       run("plan", assignment);
                     }}
                   >
-                    Save assignment
+                    {t("Save assignment")}
                   </Button>
                 </div>
               </div>
@@ -343,16 +559,16 @@ export function LoadDetail({ loadId, onClose }: { loadId: string; onClose: () =>
             <div className="absolute inset-0 z-20 flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-ink-950/35" onClick={() => setExceptionOpen(false)} />
               <div className="relative w-full max-w-md rounded-xl bg-white p-5 shadow-lift animate-rise">
-                <h3 className="text-[15px] font-semibold text-ink-900">Flag this load</h3>
-                <p className="mt-0.5 text-[12px] text-ink-500">The load moves to the exception queue and appears on the control tower.</p>
+                <h3 className="text-[15px] font-semibold text-ink-900">{t("Report an Issue")}</h3>
+                <p className="mt-0.5 text-[12px] text-ink-500">{t("Flags this trip with a delay or problem for dispatch attention.")}</p>
                 <div className="mt-3">
-                  <Field label="What happened?">
-                    <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Driver reported a mechanical delay near Columbus. Recovery ETA 3 hours." />
+                  <Field label={t("Issue details")}>
+                    <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Truck breakdown near Pune. Delay approx 2 hours." />
                   </Field>
                 </div>
                 <div className="mt-4 flex justify-end gap-2">
-                  <Button variant="ghost" onClick={() => setExceptionOpen(false)}>Cancel</Button>
-                  <Button variant="danger" loading={action.isPending} onClick={() => run("flag_exception", { reason })}>Flag exception</Button>
+                  <Button variant="ghost" onClick={() => setExceptionOpen(false)}>{t("Cancel")}</Button>
+                  <Button variant="danger" loading={action.isPending} onClick={() => run("flag_exception", { reason })}>{t("Submit Issue")}</Button>
                 </div>
               </div>
             </div>
@@ -362,6 +578,15 @@ export function LoadDetail({ loadId, onClose }: { loadId: string; onClose: () =>
         </>
       )}
     </Drawer>
+
+    <PdfViewerModal
+      open={Boolean(viewingPdf?.open)}
+      onClose={() => setViewingPdf(null)}
+      pdfEndpoint={viewingPdf?.endpoint}
+      title={viewingPdf?.title}
+      filename={viewingPdf?.filename}
+    />
+  </>
   );
 }
 
@@ -380,6 +605,7 @@ function EventModal({
   loading: boolean;
   error: string;
 }) {
+  const { t } = useLanguage();
   const [eventType, setEventType] = useState<"Pickup" | "Delivery">("Delivery");
   const [facilityId, setFacilityId] = useState("");
   const [scheduled, setScheduled] = useState("");
@@ -391,37 +617,37 @@ function EventModal({
     <div className="absolute inset-0 z-30 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-ink-950/40" onClick={onClose} />
       <div className="relative w-full max-w-md rounded-xl bg-white p-5 shadow-lift animate-rise">
-        <h3 className="text-[15px] font-semibold text-ink-900">Record delivery event</h3>
+        <h3 className="text-[15px] font-semibold text-ink-900">{t("Record delivery event")}</h3>
         <p className="mt-0.5 text-[12px] text-ink-500">{load.loadId} · {load.customerName}</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <Field label="Event type">
+          <Field label={t("Event type")}>
             <Select value={eventType} onChange={(e) => setEventType(e.target.value as "Pickup" | "Delivery")}>
-              <option>Pickup</option>
-              <option>Delivery</option>
+              <option value="Pickup">{t("Pickup")}</option>
+              <option value="Delivery">{t("Delivery")}</option>
             </Select>
           </Field>
-          <Field label="Facility">
+          <Field label={t("Facility")}>
             <Select value={facilityId} onChange={(e) => setFacilityId(e.target.value)}>
-              <option value="">No facility</option>
+              <option value="">{t("No facility")}</option>
               {facilities.map((f) => <option key={f.facilityId} value={f.facilityId}>{f.facilityName}</option>)}
             </Select>
           </Field>
-          <Field label="Scheduled">
+          <Field label={t("Scheduled")}>
             <Input type="datetime-local" value={scheduled} onChange={(e) => setScheduled(e.target.value)} />
           </Field>
-          <Field label="Actual">
+          <Field label={t("Actual")}>
             <Input type="datetime-local" value={actual} onChange={(e) => setActual(e.target.value)} />
           </Field>
-          <Field label="Detention (min)">
+          <Field label={t("Detention (min)")}>
             <Input type="number" min={0} value={detention} onChange={(e) => setDetention(e.target.value)} />
           </Field>
-          <Field label="Notes" className="sm:col-span-2">
-            <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
+          <Field label={t("Notes")} className="sm:col-span-2">
+            <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("Optional")} />
           </Field>
         </div>
-        {error ? <p className="mt-2 text-[12px] text-red-700">{error}</p> : null}
+        {error ? <p className="mt-2 text-[12px] text-red-700">{t(error)}</p> : null}
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={onClose}>{t("Cancel")}</Button>
           <Button
             variant="primary"
             loading={loading}
@@ -436,7 +662,7 @@ function EventModal({
               })
             }
           >
-            Save event
+            {t("Save event")}
           </Button>
         </div>
       </div>

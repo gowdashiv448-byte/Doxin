@@ -27,5 +27,31 @@ export default async function trailerRoutes(app: FastifyInstance) {
     createSchema: z.object(base),
     updateSchema: z.object(base).partial(),
     filters: { status: "status", type: "trailer_type" },
+    customFilter: (q, params) => {
+      if (q.available === "true" || q.available === true || q.forLoadId) {
+        if (q.forLoadId && typeof q.forLoadId === "string") {
+          params.push(q.forLoadId);
+          return `trailers.status = 'Active' AND NOT EXISTS (
+            SELECT 1 FROM trips tr
+            WHERE tr.trailer_id = trailers.trailer_id
+              AND tr.trip_status IN ('PLANNED','DISPATCHED','IN_TRANSIT')
+              AND tr.load_id <> $${params.length}
+          )`;
+        }
+        return `trailers.status = 'Active' AND NOT EXISTS (
+          SELECT 1 FROM trips tr
+          WHERE tr.trailer_id = trailers.trailer_id
+            AND tr.trip_status IN ('PLANNED','DISPATCHED','IN_TRANSIT')
+        )`;
+      }
+      if (q.available === "false") {
+        return `EXISTS (
+          SELECT 1 FROM trips tr
+          WHERE tr.trailer_id = trailers.trailer_id
+            AND tr.trip_status IN ('PLANNED','DISPATCHED','IN_TRANSIT')
+        )`;
+      }
+      return undefined;
+    },
   });
 }

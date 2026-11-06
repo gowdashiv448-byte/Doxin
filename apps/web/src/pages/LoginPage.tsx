@@ -45,7 +45,7 @@ export default function LoginPage() {
 
         <div className="relative max-w-lg">
           <p className="mb-5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-signal-400">
-            <span className="h-px w-6 bg-signal-500" /> Run the whole desk, not five spreadsheets
+            <span className="h-px w-6 bg-signal-500" /> Fleet and shipments made simple
           </p>
           <h1 className="text-[44px] font-semibold leading-[1.05] tracking-[-0.035em] xl:text-[52px]">
             Every load.
@@ -55,14 +55,13 @@ export default function LoginPage() {
             <span className="text-white/45">One source of truth.</span>
           </h1>
           <p className="mt-6 max-w-md text-[14px] leading-7 text-white/55">
-            Dispatch loads, assign drivers and equipment, track pickups and deliveries, manage maintenance and safety, and see
-            the margin on every lane — without leaving the console.
+            Book freight trips, assign drivers and trucks, track deliveries, record diesel expenses, and view GST invoices — all in one simple console.
           </p>
           <div className="mt-9 grid grid-cols-3 gap-3">
             {[
-              { icon: <Truck className="h-4 w-4" />, value: "85k+", label: "loads" },
-              { icon: <Waypoints className="h-4 w-4" />, value: "58", label: "lanes" },
-              { icon: <ShieldCheck className="h-4 w-4" />, value: "99.2%", label: "audit trail" },
+              { icon: <Truck className="h-4 w-4" />, value: "Fleet", label: "Trucks" },
+              { icon: <Waypoints className="h-4 w-4" />, value: "Routes", label: "Pan India" },
+              { icon: <ShieldCheck className="h-4 w-4" />, value: "18% GST", label: "Invoices" },
             ].map((item) => (
               <div key={item.label} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-3 backdrop-blur">
                 <div className="mb-2 text-white/40">{item.icon}</div>
@@ -92,7 +91,7 @@ export default function LoginPage() {
             <Sparkles className="h-3 w-3" /> Operations console
           </p>
           <h2 className="text-[28px] font-semibold tracking-[-0.02em] text-ink-900">Welcome back</h2>
-          <p className="mt-1 text-[13px] text-ink-500">Sign in to run your dispatch desk.</p>
+          <p className="mt-1 text-[13px] text-ink-500">Sign in to manage your shipments and fleet.</p>
 
           <form onSubmit={submit} className="mt-8 space-y-4">
             <div>
@@ -126,13 +125,13 @@ export default function LoginPage() {
             </div>
             {error ? <div className="rounded-md border border-red-100 bg-red-50 px-3 py-2 text-[12px] text-red-700">{error}</div> : null}
             <button type="submit" disabled={loading} className="btn-primary h-10 w-full disabled:opacity-60">
-              {loading ? "Signing in…" : "Sign in to console"}
+              {loading ? "Signing in…" : "Sign In"}
               {!loading ? <ArrowRight className="h-4 w-4" /> : null}
             </button>
           </form>
 
           <div className="mt-6 rounded-lg border border-ink-100 bg-white p-3.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-400">Demo account</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-400">Demo Login</p>
             <div className="mt-2 space-y-1 font-mono text-[11px] text-ink-600">
               <p className="flex justify-between"><span>admin@doxin.com</span><span className="text-ink-400">administrator</span></p>
             </div>

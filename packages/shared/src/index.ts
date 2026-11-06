@@ -164,6 +164,94 @@ export const CARGO_TYPES = ["Dry Van", "Refrigerated"] as const;
 export const BOOKING_TYPES = ["Spot", "Contract", "Dedicated"] as const;
 export const CUSTOMER_TYPES = ["Spot", "Contract", "Dedicated"] as const;
 
+export const BILL_STATUSES = ["GENERATED", "SENT", "PAID", "CANCELLED"] as const;
+export type BillStatus = (typeof BILL_STATUSES)[number];
+
+export const BILL_EMAIL_STATUSES = ["PENDING", "SENT", "FAILED", "SKIPPED"] as const;
+export type BillEmailStatus = (typeof BILL_EMAIL_STATUSES)[number];
+
+export interface BillTripDetails {
+  tripId?: string | null;
+  loadId?: string;
+  loadDate?: string;
+  originCity?: string;
+  originState?: string;
+  destinationCity?: string;
+  destinationState?: string;
+  driverId?: string | null;
+  driverName?: string | null;
+  driverPhone?: string | null;
+  truckId?: string | null;
+  truckUnit?: string | null;
+  trailerId?: string | null;
+  trailerNumber?: string | null;
+  actualDistanceMiles?: number | null;
+  typicalDistanceMiles?: number | null;
+  dispatchDate?: string | null;
+  deliveredAt?: string | null;
+  completedAt?: string | null;
+  weightLbs?: number | null;
+  pieces?: number | null;
+  loadType?: string | null;
+  bookingType?: string | null;
+  poNumber?: string | null;
+  [key: string]: unknown;
+}
+
+export interface BillChargesBreakdown {
+  linehaul: number;
+  fuelSurcharge: number;
+  accessorialCharges: number;
+  subtotal: number;
+  gstRate: number;
+  gstAmount: number;
+  totalAmount: number;
+  [key: string]: unknown;
+}
+
+export interface Bill {
+  billId: string;
+  tenantId: string;
+  loadId: string;
+  tripId: string | null;
+  customerId: string;
+  customerName?: string;
+  billingAddress?: string | null;
+  contactName?: string | null;
+  dispatcherCompanyName: string;
+  recipientEmail: string | null;
+  s3Url: string;
+  s3Bucket: string | null;
+  s3Key: string;
+  linehaulAmount: number;
+  fuelSurcharge: number;
+  accessorialCharges: number;
+  subtotal: number;
+  gstRate: number;
+  gstAmount: number;
+  totalAmount: number;
+  currency: string;
+  tripDetails: BillTripDetails;
+  chargesBreakdown: BillChargesBreakdown;
+  status: BillStatus;
+  emailStatus: BillEmailStatus;
+  emailError?: string | null;
+  emailSentAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AccountingSummary {
+  asOf: string;
+  totalInvoiced: number;
+  totalSubtotal: number;
+  totalGst: number;
+  totalPaid: number;
+  totalPending: number;
+  billsCount: number;
+  sentBillsCount: number;
+}
+
 export function canTransition(from: LoadStatus, action: LoadAction): boolean {
   return LOAD_ACTIONS[action]?.from.includes(from) ?? false;
 }

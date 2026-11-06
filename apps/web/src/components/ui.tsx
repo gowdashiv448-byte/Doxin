@@ -2,6 +2,7 @@ import { useEffect, useId, type ButtonHTMLAttributes, type InputHTMLAttributes, 
 import clsx from "clsx";
 import { X, Loader2, Inbox, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { STATUS_TONES, type Page } from "@doxin/shared";
+import { useLanguage } from "../lib/language";
 
 export function Button({
   variant = "secondary",
@@ -24,7 +25,7 @@ export function Button({
   };
   return (
     <button
-      className={clsx(map[variant], size === "sm" && "btn-sm", className)}
+      className={clsx(map[variant], size === "sm" && "btn-sm", "transition-transform duration-100 active:scale-[0.98]", className)}
       disabled={props.disabled || loading}
       {...props}
     >
@@ -43,8 +44,10 @@ const toneClasses = {
 };
 
 export function Badge({ status, children, tone }: { status?: string; children?: ReactNode; tone?: keyof typeof toneClasses }) {
+  const { t } = useLanguage();
   const resolved = tone ?? STATUS_TONES[status ?? ""] ?? "neutral";
-  const label = children ?? (status ? status.replaceAll("_", " ") : "");
+  const raw = children ?? (status ? status.replaceAll("_", " ") : "");
+  const label = typeof raw === "string" ? t(raw) : raw;
   return (
     <span className={clsx("badge", toneClasses[resolved])}>
       <span className="badge-dot opacity-70" />
@@ -68,12 +71,13 @@ export function PageHeader({
   description?: string;
   actions?: ReactNode;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
-        {eyebrow ? <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-signal-600">{eyebrow}</p> : null}
-        <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-ink-900">{title}</h1>
-        {description ? <p className="mt-1 max-w-2xl text-sm leading-6 text-ink-500">{description}</p> : null}
+        {eyebrow ? <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-signal-600">{t(eyebrow)}</p> : null}
+        <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-ink-900">{t(title)}</h1>
+        {description ? <p className="mt-1 max-w-2xl text-sm leading-6 text-ink-500">{t(description)}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
@@ -81,12 +85,13 @@ export function PageHeader({
 }
 
 export function Field({ label, hint, error, children, className }: { label: string; hint?: string; error?: string; children: ReactNode; className?: string }) {
+  const { t } = useLanguage();
   return (
     <label className={clsx("block", className)}>
-      <span className="label">{label}</span>
+      <span className="label">{t(label)}</span>
       {children}
-      {hint && !error ? <p className="mt-1 text-[11px] text-ink-400">{hint}</p> : null}
-      {error ? <p className="mt-1 text-[11px] font-medium text-red-600">{error}</p> : null}
+      {hint && !error ? <p className="mt-1 text-[11px] text-ink-400">{t(hint)}</p> : null}
+      {error ? <p className="mt-1 text-[11px] font-medium text-red-600">{t(error)}</p> : null}
     </label>
   );
 }
@@ -124,6 +129,7 @@ export function Modal({
   footer?: ReactNode;
   size?: "sm" | "md" | "lg";
 }) {
+  const { t } = useLanguage();
   const titleId = useId();
   useEffect(() => {
     if (!open) return;
@@ -140,17 +146,17 @@ export function Modal({
   const width = size === "sm" ? "max-w-md" : size === "lg" ? "max-w-3xl" : "max-w-xl";
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-ink-950/45 backdrop-blur-[2px] animate-fade-in" onClick={onClose} />
+      <div className="absolute inset-0 bg-ink-950/40 backdrop-blur-[1px] animate-fade-in transition-opacity duration-150" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={clsx("relative max-h-[90vh] w-full overflow-y-auto rounded-xl bg-white shadow-lift animate-rise", width)}
+        className={clsx("relative max-h-[90vh] w-full overflow-y-auto rounded-xl bg-white shadow-lift animate-modal-in transform-gpu will-change-transform", width)}
       >
         <div className="sticky top-0 z-10 flex items-start justify-between border-b border-ink-100 bg-white px-5 py-4">
           <div>
-            <h2 id={titleId} className="text-[17px] font-semibold tracking-tight text-ink-900">{title}</h2>
-            {description ? <p className="mt-0.5 text-[13px] text-ink-500">{description}</p> : null}
+            <h2 id={titleId} className="text-[17px] font-semibold tracking-tight text-ink-900">{t(title)}</h2>
+            {description ? <p className="mt-0.5 text-[13px] text-ink-500">{t(description)}</p> : null}
           </div>
           <button onClick={onClose} className="rounded-md p-1 text-ink-400 hover:bg-ink-50 hover:text-ink-700" aria-label="Close">
             <X className="h-4 w-4" />
@@ -177,12 +183,12 @@ export function Drawer({ open, onClose, children, width = "max-w-2xl" }: { open:
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-40">
-      <div className="absolute inset-0 bg-ink-950/35 backdrop-blur-[1px] animate-fade-in" onClick={onClose} />
+      <div className="absolute inset-0 bg-ink-950/35 backdrop-blur-[1px] animate-fade-in transition-opacity duration-150" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Details panel"
-        className={clsx("absolute inset-y-0 right-0 flex w-full flex-col bg-white shadow-lift animate-slide-in", width)}
+        className={clsx("absolute inset-y-0 right-0 flex w-full flex-col bg-white shadow-lift animate-drawer-in transform-gpu will-change-transform", width)}
       >
         {children}
       </div>
@@ -191,13 +197,14 @@ export function Drawer({ open, onClose, children, width = "max-w-2xl" }: { open:
 }
 
 export function EmptyState({ title, description, action, icon }: { title: string; description?: string; action?: ReactNode; icon?: ReactNode }) {
+  const { t } = useLanguage();
   return (
     <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
       <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-ink-50 text-ink-400">
         {icon ?? <Inbox className="h-5 w-5" />}
       </div>
-      <h3 className="text-sm font-semibold text-ink-800">{title}</h3>
-      {description ? <p className="mt-1 max-w-sm text-[13px] leading-5 text-ink-500">{description}</p> : null}
+      <h3 className="text-sm font-semibold text-ink-800">{t(title)}</h3>
+      {description ? <p className="mt-1 max-w-sm text-[13px] leading-5 text-ink-500">{t(description)}</p> : null}
       {action ? <div className="mt-4">{action}</div> : null}
     </div>
   );
@@ -218,19 +225,20 @@ export function LoadingBlock({ rows = 5 }: { rows?: number }) {
 }
 
 export function Pagination({ page, totalPages, total, onPage }: { page: number; totalPages: number; total: number; onPage: (p: number) => void }) {
+  const { t } = useLanguage();
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink-100 px-4 py-3">
       <p className="text-[12px] text-ink-500">
-        <span className="font-medium text-ink-700">{total.toLocaleString()}</span> records
+        <span className="font-medium text-ink-700">{total.toLocaleString()}</span> {t("records")}
       </p>
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="sm" onClick={() => onPage(page - 1)} disabled={page <= 1} aria-label="Previous page">
+        <Button variant="ghost" size="sm" onClick={() => onPage(page - 1)} disabled={page <= 1} aria-label={t("Previous page")}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <span className="px-2 font-mono text-[11px] text-ink-500">
           {page} / {totalPages}
         </span>
-        <Button variant="ghost" size="sm" onClick={() => onPage(page + 1)} disabled={page >= totalPages} aria-label="Next page">
+        <Button variant="ghost" size="sm" onClick={() => onPage(page + 1)} disabled={page >= totalPages} aria-label={t("Next page")}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
@@ -239,15 +247,17 @@ export function Pagination({ page, totalPages, total, onPage }: { page: number; 
 }
 
 export function SearchInput({ value, onChange, placeholder = "Search…" }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  const { t } = useLanguage();
   return (
     <div className="relative">
       <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-400" />
-      <input className="input w-64 pl-8" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+      <input className="input w-64 pl-8" value={value} onChange={(e) => onChange(e.target.value)} placeholder={t(placeholder)} />
     </div>
   );
 }
 
 export function Tabs<T extends string>({ value, onChange, tabs }: { value: T; onChange: (v: T) => void; tabs: { value: T; label: string; count?: number }[] }) {
+  const { t } = useLanguage();
   return (
     <div className="flex items-center gap-1 border-b border-ink-100">
       {tabs.map((tab) => (
@@ -261,7 +271,7 @@ export function Tabs<T extends string>({ value, onChange, tabs }: { value: T; on
               : "border-transparent text-ink-500 hover:border-ink-200 hover:text-ink-800",
           )}
         >
-          {tab.label}
+          {t(tab.label)}
           {tab.count !== undefined ? (
             <span className={clsx("rounded px-1.5 py-0.5 font-mono text-[10px]", value === tab.value ? "bg-ink-900 text-white" : "bg-ink-100 text-ink-500")}>
               {tab.count}
@@ -288,10 +298,11 @@ export function StatCard({
   tone?: "neutral" | "positive" | "negative" | "warning";
   icon?: ReactNode;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="card p-4">
       <div className="flex items-start justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-ink-500">{label}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-ink-500">{t(label)}</p>
         {icon ? <div className="text-ink-300">{icon}</div> : null}
       </div>
       <p className="mt-2 font-mono text-[26px] font-medium leading-none tracking-[-0.03em] text-ink-900 tabular-nums">{value}</p>
@@ -309,18 +320,19 @@ export function StatCard({
             {delta}
           </span>
         ) : null}
-        {sub ? <span className="text-ink-400">{sub}</span> : null}
+        {sub ? <span className="text-ink-400">{t(sub)}</span> : null}
       </div>
     </div>
   );
 }
 
 export function SectionTitle({ title, action, description }: { title: string; action?: ReactNode; description?: string }) {
+  const { t } = useLanguage();
   return (
     <div className="flex items-end justify-between gap-3 px-4 pb-2 pt-4">
       <div>
-        <h2 className="text-[14px] font-semibold tracking-tight text-ink-900">{title}</h2>
-        {description ? <p className="mt-0.5 text-[12px] text-ink-500">{description}</p> : null}
+        <h2 className="text-[14px] font-semibold tracking-tight text-ink-900">{t(title)}</h2>
+        {description ? <p className="mt-0.5 text-[12px] text-ink-500">{t(description)}</p> : null}
       </div>
       {action}
     </div>

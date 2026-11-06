@@ -28,6 +28,7 @@ import analyticsRoutes from "./modules/analytics/routes.js";
 import importRoutes from "./modules/imports/routes.js";
 import auditRoutes from "./modules/audit/routes.js";
 import platformRoutes from "./modules/platform/routes.js";
+import accountingRoutes from "./modules/accounting/routes.js";
 import {
   commitTenantContext,
   createRequestStore,
@@ -151,6 +152,7 @@ export async function buildApp() {
   await app.register(importRoutes, { prefix: "/api/imports" });
   await app.register(auditRoutes, { prefix: "/api/audit" });
   await app.register(platformRoutes, { prefix: "/api/platform" });
+  await app.register(accountingRoutes, { prefix: "/api/accounting" });
 
   return app;
 }

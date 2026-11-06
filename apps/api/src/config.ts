@@ -34,6 +34,14 @@ const envSchema = z
       .enum(["true", "false"])
       .default("true")
       .transform((value) => value === "true"),
+
+    // AWS configuration for S3 Bill Storage & SES Mailing
+    AWS_REGION: z.string().default("us-east-1"),
+    AWS_ACCESS_KEY_ID: z.string().optional(),
+    AWS_SECRET_ACCESS_KEY: z.string().optional(),
+    AWS_S3_BUCKET: z.string().default("doxin-bills"),
+    AWS_SES_FROM_EMAIL: z.string().email().default("billing@doxin.com"),
+    AWS_ENDPOINT_URL: z.string().optional(),
   })
   .superRefine((value, ctx) => {
     if (!value.DATABASE_URL && !value.MIGRATION_DATABASE_URL) {

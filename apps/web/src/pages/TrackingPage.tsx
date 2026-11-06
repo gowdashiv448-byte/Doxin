@@ -37,12 +37,12 @@ export default function TrackingPage() {
 
   return (
     <>
-      <PageHeader eyebrow="Execution" title="Tracking" description="Pickup and delivery proof across the network, with on-time performance and detention." />
+      <PageHeader eyebrow="Live Status" title="Tracking" description="Pickup and delivery milestones, on-time arrivals and waiting time tracking." />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Events tracked" value={num(totalEvents)} sub="Matching current filters" icon={<MapPin className="h-4 w-4" />} />
-        <StatCard label="On-time" value={pct(totalEvents ? (Number(stats?.onTime ?? 0) / totalEvents) * 100 : 0)} sub={`${stats?.onTime ?? 0} events`} tone="positive" icon={<PackageCheck className="h-4 w-4" />} />
-        <StatCard label="Late" value={num(stats?.late ?? 0)} sub="Missed service window" tone={Number(stats?.late) ? "negative" : "neutral"} icon={<TriangleAlert className="h-4 w-4" />} />
-        <StatCard label="Avg detention" value={`${num(stats?.avgDetention, 0)} min`} sub="Dwell at facility" icon={<Clock3 className="h-4 w-4" />} />
+        <StatCard label="On-time" value={pct(totalEvents ? (Number(stats?.onTime ?? 0) / totalEvents) * 100 : 0)} sub={`${stats?.onTime ?? 0} stops`} tone="positive" icon={<PackageCheck className="h-4 w-4" />} />
+        <StatCard label="Delayed" value={num(stats?.late ?? 0)} sub="Missed scheduled window" tone={Number(stats?.late) ? "negative" : "neutral"} icon={<TriangleAlert className="h-4 w-4" />} />
+        <StatCard label="Avg Waiting Time" value={`${num(stats?.avgDetention, 0)} min`} sub="Loading / unloading dwell" icon={<Clock3 className="h-4 w-4" />} />
       </div>
 
       <Card className="mt-4 overflow-hidden">

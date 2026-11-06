@@ -132,7 +132,7 @@ export default function AnalyticsPage() {
         onChange={setTab}
         tabs={[
           { value: "overview", label: "Overview" },
-          { value: "lanes", label: "Lanes" },
+          { value: "lanes", label: "Routes" },
           { value: "customers", label: "Customers" },
           { value: "drivers", label: "Drivers" },
           { value: "fleet", label: "Fleet" },
@@ -148,26 +148,26 @@ export default function AnalyticsPage() {
           <>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard
-                label="Total revenue"
+                label="Total Revenue"
                 value={compactMoney(overview.totalRevenue)}
-                sub={`${num(overview.loads)} loads`}
+                sub={`${num(overview.loads)} trips`}
                 icon={<TrendingUp className="h-4 w-4" />}
               />
               <StatCard
-                label="Contribution margin"
+                label="Profit / Margin"
                 value={compactMoney(overview.margin)}
                 delta={`${overview.marginPct}% of revenue`}
                 tone={Number(overview.margin) >= 0 ? "positive" : "negative"}
               />
               <StatCard
-                label="Revenue / mile"
-                value={`$${Number(overview.revenuePerMile).toFixed(2)}`}
-                sub={`${num(overview.miles)} miles driven`}
+                label="Revenue / km"
+                value={`₹${Number(overview.revenuePerMile).toFixed(2)}`}
+                sub={`${num(overview.miles)} km driven`}
               />
               <StatCard
-                label="On-time delivery"
+                label="On-Time Delivery"
                 value={pct(overview.onTimeRate)}
-                sub={`${num(overview.incidents)} safety incidents`}
+                sub={`${num(overview.incidents)} incidents`}
                 tone={
                   Number(overview.onTimeRate) >= 90 ? "positive" : "warning"
                 }
@@ -175,15 +175,29 @@ export default function AnalyticsPage() {
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard
-                label="Linehaul revenue"
-                value={compactMoney(overview.linehaulRevenue)}
-                sub="Base freight charges"
+                label="Total Invoiced"
+                value={compactMoney(overview.billedRevenue || overview.totalRevenue)}
+                sub={`${num(overview.billsCount || 0)} invoices`}
+                icon={<TrendingUp className="h-4 w-4" />}
               />
               <StatCard
-                label="Fuel cost"
-                value={compactMoney(overview.fuelCost)}
-                sub={`Avg ${Number(overview.avgMpg).toFixed(2)} MPG`}
+                label="GST Collected (18%)"
+                value={compactMoney(overview.gstCollected)}
+                sub="Tax on delivery services"
+                tone="warning"
               />
+              <StatCard
+                label="Freight Revenue"
+                value={compactMoney(overview.linehaulRevenue)}
+                sub="Base transport charges"
+              />
+              <StatCard
+                label="Fuel Cost"
+                value={compactMoney(overview.fuelCost)}
+                sub={`Avg ${Number(overview.avgMpg).toFixed(2)} km/L`}
+              />
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard
                 label="Maintenance cost"
                 value={compactMoney(overview.maintenanceCost)}
@@ -258,7 +272,7 @@ export default function AnalyticsPage() {
         <div className="mt-4 grid gap-4 xl:grid-cols-3">
           <Card className="xl:col-span-2 overflow-hidden">
             <div className="border-b border-ink-100 px-4 py-3">
-              <h2 className="text-[14px] font-semibold">Lane profitability</h2>
+              <h2 className="text-[14px] font-semibold">Route Profitability</h2>
               <p className="text-[11px] text-ink-500">
                 Revenue versus direct fuel cost, ranked by revenue.
               </p>
@@ -266,11 +280,11 @@ export default function AnalyticsPage() {
             <DataTable>
               <thead>
                 <tr>
-                  <th>Lane</th>
-                  <th className="text-right">Loads</th>
+                  <th>Route</th>
+                  <th className="text-right">Trips</th>
                   <th className="text-right">Revenue</th>
                   <th className="text-right">Fuel</th>
-                  <th className="text-right">Margin</th>
+                  <th className="text-right">Profit</th>
                   <th className="text-right">Margin %</th>
                 </tr>
               </thead>
@@ -283,7 +297,7 @@ export default function AnalyticsPage() {
                         {lane.destinationCity}, {lane.destinationState}
                       </p>
                       <p className="mono text-[10px] text-ink-400">
-                        {lane.routeId} · {num(lane.miles)} mi
+                        {lane.routeId} · {num(lane.miles)} km
                       </p>
                     </td>
                     <td className="text-right font-mono text-[12px]">
@@ -318,7 +332,7 @@ export default function AnalyticsPage() {
           </Card>
           <Card>
             <div className="px-4 py-3">
-              <h2 className="text-[14px] font-semibold">Top lanes</h2>
+              <h2 className="text-[14px] font-semibold">Top Routes</h2>
               <p className="text-[11px] text-ink-500">By total revenue</p>
             </div>
             <div className="px-2 pb-4">
@@ -389,6 +403,7 @@ export default function AnalyticsPage() {
                 <th>Type</th>
                 <th className="text-right">Loads</th>
                 <th className="text-right">Revenue</th>
+                <th className="text-right">Billed (+GST)</th>
                 <th className="text-right">Fuel</th>
                 <th className="text-right">Margin</th>
                 <th className="text-right">On-time</th>
@@ -413,6 +428,9 @@ export default function AnalyticsPage() {
                   </td>
                   <td className="text-right font-mono text-[12px]">
                     {compactMoney(customer.revenue)}
+                  </td>
+                  <td className="text-right font-mono text-[12px] font-semibold text-ink-900">
+                    {compactMoney(customer.billedRevenue || (Number(customer.revenue || 0) * 1.18))}
                   </td>
                   <td className="text-right font-mono text-[12px]">
                     {compactMoney(customer.fuelCost)}
@@ -442,12 +460,12 @@ export default function AnalyticsPage() {
             <thead>
               <tr>
                 <th>Driver</th>
-                <th>Terminal</th>
+                <th>Home Base</th>
                 <th className="text-right">Trips</th>
-                <th className="text-right">Miles</th>
+                <th className="text-right">KM</th>
                 <th className="text-right">Revenue</th>
-                <th className="text-right">RPM</th>
-                <th className="text-right">MPG</th>
+                <th className="text-right">Rate/km</th>
+                <th className="text-right">km/L</th>
                 <th className="text-right">Idle</th>
                 <th className="text-right">On-time</th>
                 <th className="text-right">Incidents</th>
@@ -475,7 +493,7 @@ export default function AnalyticsPage() {
                     {compactMoney(driver.revenue)}
                   </td>
                   <td className="text-right font-mono text-[12px]">
-                    ${Number(driver.revenuePerMile).toFixed(2)}
+                    ₹{Number(driver.revenuePerMile).toFixed(2)}
                   </td>
                   <td className="text-right font-mono text-[12px]">
                     {Number(driver.avgMpg).toFixed(2)}
@@ -503,23 +521,23 @@ export default function AnalyticsPage() {
       {tab === "fleet" ? (
         <Card className="mt-4 overflow-hidden">
           <div className="border-b border-ink-100 px-4 py-3">
-            <h2 className="text-[14px] font-semibold">Asset productivity</h2>
+            <h2 className="text-[14px] font-semibold">Truck Productivity</h2>
             <p className="text-[11px] text-ink-500">
-              Miles, revenue, fuel and maintenance cost per tractor.
+              KM driven, revenue, fuel and maintenance cost per truck.
             </p>
           </div>
           <DataTable>
             <thead>
               <tr>
-                <th>Tractor</th>
-                <th>Terminal</th>
+                <th>Truck</th>
+                <th>Base</th>
                 <th className="text-right">Trips</th>
-                <th className="text-right">Miles</th>
+                <th className="text-right">KM</th>
                 <th className="text-right">Revenue</th>
                 <th className="text-right">Fuel</th>
                 <th className="text-right">Maintenance</th>
-                <th className="text-right">Margin</th>
-                <th className="text-right">Cost/mi</th>
+                <th className="text-right">Profit</th>
+                <th className="text-right">Cost/km</th>
               </tr>
             </thead>
             <tbody>
@@ -553,7 +571,7 @@ export default function AnalyticsPage() {
                     {compactMoney(truck.margin)}
                   </td>
                   <td className="text-right font-mono text-[12px]">
-                    ${Number(truck.costPerMile).toFixed(2)}
+                    ₹{Number(truck.costPerMile).toFixed(2)}
                   </td>
                 </tr>
               ))}
@@ -563,9 +581,8 @@ export default function AnalyticsPage() {
       ) : null}
 
       <p className="mt-4 text-[10.5px] text-ink-400">
-        Margin uses linehaul + fuel surcharge + accessorials less fuel
-        purchases. Maintenance is reported separately and not allocated per
-        load.
+        Profit is freight revenue + fuel extra + other charges minus fuel
+        expenses. Maintenance is reported separately.
       </p>
     </>
   );

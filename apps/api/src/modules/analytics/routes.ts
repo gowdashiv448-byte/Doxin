@@ -28,6 +28,18 @@ export default async function analyticsRoutes(app: FastifyInstance) {
         COALESCE(sum(l.fuel_surcharge),0) AS fuel_surcharge,
         COALESCE(sum(l.accessorial_charges),0) AS accessorial,
         COALESCE(sum(l.revenue + l.fuel_surcharge + l.accessorial_charges),0) AS total_revenue,
+        (SELECT COALESCE(sum(b.total_amount),0) FROM db_s3_bill b
+          JOIN loads lb ON lb.load_id = b.load_id
+          WHERE lb.load_date BETWEEN $1 AND $2 AND lb.load_status NOT IN ('CANCELLED')) AS billed_revenue,
+        (SELECT COALESCE(sum(b.subtotal),0) FROM db_s3_bill b
+          JOIN loads lb ON lb.load_id = b.load_id
+          WHERE lb.load_date BETWEEN $1 AND $2 AND lb.load_status NOT IN ('CANCELLED')) AS billed_subtotal,
+        (SELECT COALESCE(sum(b.gst_amount),0) FROM db_s3_bill b
+          JOIN loads lb ON lb.load_id = b.load_id
+          WHERE lb.load_date BETWEEN $1 AND $2 AND lb.load_status NOT IN ('CANCELLED')) AS gst_collected,
+        (SELECT count(b.bill_id)::int FROM db_s3_bill b
+          JOIN loads lb ON lb.load_id = b.load_id
+          WHERE lb.load_date BETWEEN $1 AND $2 AND lb.load_status NOT IN ('CANCELLED')) AS bills_count,
         COALESCE(sum(t.actual_distance_miles),0)::int AS miles,
         COALESCE(round(avg(t.average_mpg)::numeric, 2), 0) AS avg_mpg,
         COALESCE(sum(fp.cost),0) AS fuel_cost,
@@ -48,6 +60,10 @@ export default async function analyticsRoutes(app: FastifyInstance) {
     const totalRevenue = Number(overview.totalRevenue ?? 0);
     return {
       ...overview,
+      billedRevenue: Number(overview.billedRevenue ?? 0),
+      billedSubtotal: Number(overview.billedSubtotal ?? 0),
+      gstCollected: Number(overview.gstCollected ?? 0),
+      billsCount: Number(overview.billsCount ?? 0),
       margin: totalRevenue - totalCost,
       marginPct: totalRevenue ? Math.round(((totalRevenue - totalCost) / totalRevenue) * 1000) / 10 : 0,
       revenuePerMile: overview.miles ? Math.round((totalRevenue / Number(overview.miles)) * 100) / 100 : 0,
@@ -62,12 +78,16 @@ export default async function analyticsRoutes(app: FastifyInstance) {
     const { from, to } = rangeParams(q.from, q.to);
     const { rows } = await query(
       `SELECT to_char(date_trunc('month', l.load_date), 'YYYY-MM') AS month,
-              count(*)::int AS loads,
+              count(DISTINCT l.load_id)::int AS loads,
               COALESCE(sum(l.revenue + l.fuel_surcharge + l.accessorial_charges),0) AS revenue,
+              COALESCE(sum(b.total_amount),0) AS billed_revenue,
+              COALESCE(sum(b.gst_amount),0) AS gst_collected,
+              count(b.bill_id)::int AS bills_count,
               COALESCE(sum(t.actual_distance_miles),0)::int AS miles,
               COALESCE(round(avg(t.average_mpg)::numeric,2),0) AS avg_mpg,
               COALESCE(sum(fp.cost),0) AS fuel_cost
        FROM loads l LEFT JOIN trips t ON t.load_id = l.load_id
+       LEFT JOIN db_s3_bill b ON b.load_id = l.load_id
        LEFT JOIN (SELECT trip_id, sum(total_cost) AS cost FROM fuel_purchases GROUP BY trip_id) fp ON fp.trip_id = t.trip_id
        WHERE l.load_date BETWEEN $1 AND $2
        GROUP BY 1 ORDER BY 1`,
@@ -108,13 +128,17 @@ export default async function analyticsRoutes(app: FastifyInstance) {
     const { from, to } = rangeParams(q.from, q.to);
     const { rows } = await query(
       `SELECT c.customer_id, c.customer_name, c.customer_type, c.account_status,
-              count(l.load_id)::int AS loads,
+              count(DISTINCT l.load_id)::int AS loads,
               COALESCE(sum(l.revenue + l.fuel_surcharge + l.accessorial_charges),0) AS revenue,
+              COALESCE(sum(b.total_amount),0) AS billed_revenue,
+              COALESCE(sum(b.gst_amount),0) AS gst_collected,
+              count(b.bill_id)::int AS bills_count,
               COALESCE(sum(t.actual_distance_miles),0)::int AS miles,
               COALESCE(sum(fp.cost),0) AS fuel_cost,
               (SELECT round(avg(e.on_time_flag::int)::numeric * 100, 1) FROM delivery_events e
                 JOIN loads l2 ON l2.load_id = e.load_id WHERE l2.customer_id = c.customer_id AND e.event_type = 'Delivery') AS on_time_rate
        FROM customers c LEFT JOIN loads l ON l.customer_id = c.customer_id AND l.load_date BETWEEN $1 AND $2
+       LEFT JOIN db_s3_bill b ON b.load_id = l.load_id
        LEFT JOIN trips t ON t.load_id = l.load_id
        LEFT JOIN (SELECT trip_id, sum(total_cost) AS cost FROM fuel_purchases GROUP BY trip_id) fp ON fp.trip_id = t.trip_id
        GROUP BY c.customer_id, c.customer_name, c.customer_type, c.account_status ORDER BY revenue DESC LIMIT $3`,

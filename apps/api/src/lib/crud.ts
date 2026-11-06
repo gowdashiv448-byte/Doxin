@@ -19,6 +19,7 @@ interface CrudOptions {
   createSchema: z.ZodTypeAny;
   updateSchema: z.ZodTypeAny;
   filters?: Record<string, string>;
+  customFilter?: (query: Record<string, unknown>, params: unknown[]) => string | undefined;
 }
 
 const camel = (s: string) => s.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
@@ -45,6 +46,10 @@ export function registerCrudRoutes(app: FastifyInstance, opts: CrudOptions) {
         params.push(value);
         where.push(`${column} = $${params.length}`);
       }
+    }
+    if (opts.customFilter) {
+      const extra = opts.customFilter(q, params);
+      if (extra) where.push(extra);
     }
     const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
     const sort = safeSort(p.sort, opts.sortColumns, opts.sortColumns.created_at ?? opts.idColumn);

@@ -71,6 +71,29 @@ export const api = {
   patch: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  getBlob: async (path: string, params?: Record<string, string | number | boolean | undefined | null>): Promise<Blob> => {
+    const headers = new Headers();
+    const token = tokenStore.get();
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    const response = await fetch(apiUrl(`${path}${qs(params)}`), { headers });
+    if (!response.ok) {
+      let body: ApiErrorBody = {};
+      try {
+        body = (await response.json()) as ApiErrorBody;
+      } catch {
+        /* non-json */
+      }
+      throw new ApiError(body.error ?? `Request failed (${response.status})`, response.status, body.code, body.details);
+    }
+    return response.blob();
+  },
+  getAuthenticatedUrl: (path: string): string => {
+    const token = tokenStore.get();
+    const base = apiUrl(path);
+    if (!token) return base;
+    const separator = base.includes("?") ? "&" : "?";
+    return `${base}${separator}token=${encodeURIComponent(token)}`;
+  },
   upload: <T>(path: string, file: File) => {
     const form = new FormData();
     form.append("file", file);

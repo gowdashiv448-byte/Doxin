@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { Check, ExternalLink, KeyRound, LogOut, Palette, ShieldCheck } from "lucide-react";
+import { Check, ExternalLink, Globe, KeyRound, LogOut, Palette, ShieldCheck } from "lucide-react";
 import { ROLE_LABELS, THEME_COLOR_LABELS, THEME_COLORS, type ThemeColor } from "@doxin/shared";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -9,9 +9,11 @@ import { useToast } from "../lib/toast";
 import { THEME_SWATCHES } from "../lib/theme";
 import { Badge, Button, Card, Field, Input, PageHeader } from "../components/ui";
 import { dateTime } from "../lib/format";
+import { SUPPORTED_LANGUAGES, useLanguage, type Language } from "../lib/language";
 
 export default function SettingsPage() {
   const { user, logout, themeColor, changeTheme } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const toast = useToast();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -20,6 +22,12 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [savingTheme, setSavingTheme] = useState<ThemeColor | null>(null);
   const { data: health } = useQuery({ queryKey: ["health"], queryFn: () => api.get<{ status: string; time: string }>("/health") });
+
+  const chooseLanguage = (lang: Language) => {
+    setLanguage(lang);
+    const found = SUPPORTED_LANGUAGES.find((l) => l.code === lang);
+    toast.success(`${found?.nativeName ?? lang} selected`);
+  };
 
   const chooseTheme = async (theme: ThemeColor) => {
     if (theme === themeColor || savingTheme) return;
@@ -87,11 +95,48 @@ export default function SettingsPage() {
         </div>
       </Card>
 
+      <Card className="mb-4 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="flex items-center gap-2 text-[14px] font-semibold text-ink-900">
+              <Globe className="h-4 w-4 text-ink-400" /> {t("Language / भाषा")}
+            </h2>
+            <p className="mt-0.5 text-[12px] text-ink-500">
+              {t("Choose your preferred interface language.")}
+            </p>
+          </div>
+          <Badge tone="neutral">{t("Preferences")}</Badge>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {SUPPORTED_LANGUAGES.map((lang) => {
+            const selected = lang.code === language;
+            return (
+              <button
+                key={lang.code}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => chooseLanguage(lang.code)}
+                className={clsx(
+                  "flex items-center justify-between rounded-lg border px-3 py-2.5 text-left transition-colors",
+                  selected ? "border-ink-900 bg-ink-50 shadow-sm" : "border-ink-200 bg-white hover:border-ink-300",
+                )}
+              >
+                <div>
+                  <p className="text-[12px] font-semibold text-ink-900">{lang.nativeName}</p>
+                  <p className="text-[10.5px] text-ink-500">{lang.name}</p>
+                </div>
+                {selected ? <Check className="h-4 w-4 text-ink-800" /> : null}
+              </button>
+            );
+          })}
+        </div>
+      </Card>
+
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <Card className="p-5">
             <h2 className="text-[14px] font-semibold text-ink-900">Profile</h2>
-            <p className="mt-0.5 text-[12px] text-ink-500">Identity used across dispatch notes, audit logs and reports.</p>
+            <p className="mt-0.5 text-[12px] text-ink-500">Your operator details visible on dispatch notes and invoices.</p>
             <div className="mt-4 flex items-center gap-4">
               <span className="flex h-14 w-14 items-center justify-center rounded-full bg-ink-900 font-mono text-[16px] text-white">{user?.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}</span>
               <div>
@@ -101,15 +146,15 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="mt-5 grid gap-3 rounded-lg border border-ink-100 bg-ink-50/50 p-3 sm:grid-cols-3">
-              <div><p className="text-[10px] font-semibold uppercase tracking-wider text-ink-400">Session</p><p className="mt-1 flex items-center gap-1 text-[12px] text-emerald-700"><ShieldCheck className="h-3.5 w-3.5" /> JWT · 12h</p></div>
-              <div><p className="text-[10px] font-semibold uppercase tracking-wider text-ink-400">API status</p><p className="mt-1 text-[12px] text-ink-700">{health?.status === "ok" ? "Operational" : "Checking…"}</p></div>
-              <div><p className="text-[10px] font-semibold uppercase tracking-wider text-ink-400">Last checked</p><p className="mt-1 text-[12px] text-ink-700">{health?.time ? dateTime(health.time) : "—"}</p></div>
+              <div><p className="text-[10px] font-semibold uppercase tracking-wider text-ink-400">Session</p><p className="mt-1 flex items-center gap-1 text-[12px] text-emerald-700"><ShieldCheck className="h-3.5 w-3.5" /> Logged In</p></div>
+              <div><p className="text-[10px] font-semibold uppercase tracking-wider text-ink-400">Server status</p><p className="mt-1 text-[12px] text-ink-700">{health?.status === "ok" ? "Connected" : "Connecting…"}</p></div>
+              <div><p className="text-[10px] font-semibold uppercase tracking-wider text-ink-400">Last synced</p><p className="mt-1 text-[12px] text-ink-700">{health?.time ? dateTime(health.time) : "—"}</p></div>
             </div>
           </Card>
 
           <Card className="p-5">
             <h2 className="flex items-center gap-2 text-[14px] font-semibold text-ink-900"><KeyRound className="h-4 w-4 text-ink-400" /> Change password</h2>
-            <p className="mt-0.5 text-[12px] text-ink-500">Use at least 8 characters. Existing sessions remain valid until expiry.</p>
+            <p className="mt-0.5 text-[12px] text-ink-500">Must be at least 8 characters.</p>
             <form onSubmit={changePassword} className="mt-4 grid gap-3 sm:grid-cols-3">
               <Field label="Current password"><Input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required /></Field>
               <Field label="New password"><Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required /></Field>
@@ -122,22 +167,22 @@ export default function SettingsPage() {
 
         <div className="space-y-4">
           <Card className="p-5">
-            <h2 className="text-[14px] font-semibold text-ink-900">Workspace</h2>
+            <h2 className="text-[14px] font-semibold text-ink-900">System</h2>
             <dl className="mt-3 space-y-2.5 text-[12px]">
-              <div className="flex justify-between"><dt className="text-ink-500">Name</dt><dd className="font-medium">North America Ops</dd></div>
-              <div className="flex justify-between"><dt className="text-ink-500">Environment</dt><dd className="font-mono text-[11px]">{import.meta.env.DEV ? "development" : "production"}</dd></div>
-              <div className="flex justify-between"><dt className="text-ink-500">Region</dt><dd>us-central</dd></div>
-              <div className="flex justify-between"><dt className="text-ink-500">Version</dt><dd className="font-mono text-[11px]">1.0.0</dd></div>
+              <div className="flex justify-between"><dt className="text-ink-500">Operation</dt><dd className="font-medium">India Logistics Hub</dd></div>
+              <div className="flex justify-between"><dt className="text-ink-500">Mode</dt><dd className="font-mono text-[11px]">{import.meta.env.DEV ? "development" : "live"}</dd></div>
+              <div className="flex justify-between"><dt className="text-ink-500">Region</dt><dd>ap-south-1 (Mumbai)</dd></div>
+              <div className="flex justify-between"><dt className="text-ink-500">Currency</dt><dd className="font-medium">INR (₹)</dd></div>
             </dl>
           </Card>
           <Card className="p-5">
-            <h2 className="text-[14px] font-semibold text-ink-900">Developer</h2>
-            <p className="mt-1 text-[12px] leading-5 text-ink-500">Interactive OpenAPI reference for every endpoint, auth included.</p>
-            <a href="/docs" target="_blank" rel="noreferrer" className="btn-secondary mt-3 w-full"><ExternalLink className="h-3.5 w-3.5" /> Open API docs</a>
+            <h2 className="text-[14px] font-semibold text-ink-900">Developer API</h2>
+            <p className="mt-1 text-[12px] leading-5 text-ink-500">Interactive API reference documentation.</p>
+            <a href="/docs" target="_blank" rel="noreferrer" className="btn-secondary mt-3 w-full"><ExternalLink className="h-3.5 w-3.5" /> API docs</a>
           </Card>
           <Card className="p-5">
-            <h2 className="text-[14px] font-semibold text-ink-900">Session</h2>
-            <p className="mt-1 text-[12px] text-ink-500">Sign out of this device. Any unsaved form changes will be lost.</p>
+            <h2 className="text-[14px] font-semibold text-ink-900">Logout</h2>
+            <p className="mt-1 text-[12px] text-ink-500">Sign out of this session safely.</p>
             <Button variant="danger" className="mt-3 w-full" onClick={logout}><LogOut className="h-3.5 w-3.5" /> Sign out</Button>
           </Card>
         </div>

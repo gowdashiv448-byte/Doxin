@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
+import { useLanguage } from "../lib/language";
 import { Badge, Card, DataTable, EmptyState, LoadingBlock, PageHeader, Pagination, SearchInput, Select } from "../components/ui";
 import { date, money, num, pct } from "../lib/format";
 import type { Page } from "@doxin/shared";
@@ -13,6 +14,7 @@ export default function TripsPage() {
   const [status, setStatus] = useState("ALL");
   const [page, setPage] = useState(1);
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const { data, isLoading } = useQuery({
     queryKey: ["trips", { search, status, page }],
@@ -23,30 +25,30 @@ export default function TripsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Execution"
+        eyebrow="Operations"
         title="Trips"
-        description="Every dispatch with its driver, equipment, miles, fuel efficiency and status."
+        description="Active and completed trips with driver, truck, KM, and fuel efficiency."
       />
       <Card className="overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
           <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Trip, load, customer, unit…" />
           <div className="flex items-center gap-2">
             <Select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="w-40">
-              <option value="ALL">All statuses</option>
-              <option value="PLANNED">Planned</option>
-              <option value="DISPATCHED">Dispatched</option>
-              <option value="IN_TRANSIT">In transit</option>
-              <option value="DELIVERED">Delivered</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
+              <option value="ALL">{t("all")} {t("status")}</option>
+              <option value="PLANNED">{t("planned")}</option>
+              <option value="DISPATCHED">{t("dispatched")}</option>
+              <option value="IN_TRANSIT">{t("on the road")}</option>
+              <option value="DELIVERED">{t("delivered")}</option>
+              <option value="COMPLETED">{t("completed")}</option>
+              <option value="CANCELLED">{t("cancelled")}</option>
             </Select>
-            <span className="text-[11px] text-ink-400">{data?.total?.toLocaleString() ?? 0} trips</span>
+            <span className="text-[11px] text-ink-400">{data?.total?.toLocaleString() ?? 0} {t("trips")}</span>
           </div>
         </div>
         {isLoading ? <LoadingBlock rows={8} /> : data?.data.length ? (
           <>
             <DataTable>
-              <thead><tr><th>Trip</th><th>Load / customer</th><th>Lane</th><th>Driver / unit</th><th>Dispatch</th><th className="text-right">Miles</th><th className="text-right">MPG</th><th>Status</th></tr></thead>
+              <thead><tr><th>{t("Trip ID")}</th><th>{t("Customer")} / {t("Revenue")}</th><th>{t("Route")}</th><th>{t("Driver & Truck")}</th><th>{t("Dispatch")}</th><th className="text-right">KM</th><th className="text-right">km/L</th><th>{t("Status")}</th></tr></thead>
               <tbody>
                 {data.data.map((trip) => (
                   <tr key={trip.tripId} className="cursor-pointer" onClick={() => navigate(`/loads?open=${trip.loadId}`)}>
@@ -55,7 +57,7 @@ export default function TripsPage() {
                     <td className="text-[12.5px]">{trip.originCity}, {trip.originState} → {trip.destinationCity}, {trip.destinationState}</td>
                     <td><p className="text-[12.5px]">{trip.driverName ?? "Unassigned"}</p><p className="mono text-[10.5px] text-ink-400">Unit {trip.truckUnit ?? "—"}</p></td>
                     <td className="text-[12px] text-ink-600">{date(trip.dispatchDate)}</td>
-                    <td className="text-right font-mono text-[12px]">{num(trip.actualDistanceMiles)}</td>
+                    <td className="text-right font-mono text-[12px]">{num(trip.actualDistanceMiles)} km</td>
                     <td className="text-right font-mono text-[12px]">{trip.averageMpg ? Number(trip.averageMpg).toFixed(2) : "—"}</td>
                     <td><Badge status={trip.tripStatus} /></td>
                   </tr>
@@ -64,7 +66,7 @@ export default function TripsPage() {
             </DataTable>
             <Pagination page={data.page} totalPages={data.totalPages} total={data.total} onPage={setPage} />
           </>
-        ) : <EmptyState title="No trips found" description="Trips are created when you assign resources to a load." />}
+        ) : <EmptyState title="No trips found" description="Trips appear here when you assign resources to a booking." />}
       </Card>
     </>
   );
