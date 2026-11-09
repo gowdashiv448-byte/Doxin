@@ -14,7 +14,7 @@ import {
   Fuel,
   BarChart3,
   ShieldCheck,
-  UserCog,
+  BookUser,
   DatabaseZap,
   Settings,
   Menu,
@@ -25,11 +25,10 @@ import {
   Plus,
   Search,
   Receipt,
-  Globe,
 } from "lucide-react";
 import { useAuth, canWrite } from "../lib/auth";
 import { ROLE_LABELS } from "@doxin/shared";
-import { useLanguage, SUPPORTED_LANGUAGES, type Language } from "../lib/language";
+import { useLanguage } from "../lib/language";
 
 interface NavItem {
   to: string;
@@ -76,7 +75,7 @@ const groups: { label: string; items: NavItem[] }[] = [
   {
     label: "Workspace",
     items: [
-      { to: "/team", label: "Administrators", icon: <UserCog className="h-[17px] w-[17px]" />, roles: ["ADMIN"] },
+      { to: "/contacts", label: "Contact Book", icon: <BookUser className="h-[17px] w-[17px]" />, roles: ["ADMIN"] },
       { to: "/imports", label: "Data imports", icon: <DatabaseZap className="h-[17px] w-[17px]" />, roles: ["ADMIN"] },
       { to: "/settings", label: "Settings", icon: <Settings className="h-[17px] w-[17px]" /> },
     ],
@@ -97,14 +96,14 @@ const titles: Record<string, string> = {
   "/analytics": "Analytics",
   "/safety": "Safety",
   "/accounting": "Invoices",
-  "/team": "Administrators",
+  "/contacts": "Contact Book",
   "/imports": "Data imports",
   "/settings": "Settings",
 };
 
 export function AppShell() {
   const { user, logout } = useAuth();
-  const { language, setLanguage, t } = useLanguage();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -114,37 +113,37 @@ export function AppShell() {
   const title = titles[location.pathname] ?? user?.tenantName ?? "Doxin";
 
   const sidebar = (
-    <div className="flex h-full flex-col bg-ink-950 text-ink-200">
+    <div className="sidebar-shell flex h-full flex-col">
       <div className="flex h-16 items-center justify-between px-5">
         <NavLink to="/" className="flex items-center gap-2.5" onClick={() => setMobileOpen(false)}>
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-xs">
             <svg viewBox="0 0 32 32" className="h-5 w-5" aria-hidden>
               <path d="M6 24V8h9c4.5 0 7.5 3 7.5 8s-3 8-7.5 8H6Zm5-4.2h3.7c2.1 0 3.4-1.3 3.4-3.8s-1.3-3.8-3.4-3.8H11v7.6Z" fill="#0E1520" />
-              <circle cx="25" cy="24" r="3.4" fill="rgb(var(--signal-500))" />
+              <circle cx="25" cy="24" r="3.4" fill="var(--sidebar-badge-bg)" />
             </svg>
           </span>
           <span className="text-[17px] font-semibold tracking-[-0.02em] text-white">doxin</span>
-          <span className="ml-1 rounded bg-ink-800 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-ink-400">ops</span>
+          <span className="ml-1 rounded bg-white/20 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-white">ops</span>
         </NavLink>
-        <button className="text-ink-400 lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Close menu">
+        <button className="text-white/70 hover:text-white lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Close menu">
           <X className="h-5 w-5" />
         </button>
       </div>
 
       <button
         onClick={() => navigate("/settings")}
-        className="mx-3 mb-4 flex items-center gap-2 rounded-lg border border-ink-800 bg-ink-900 px-3 py-2.5 text-left transition-colors hover:border-ink-700"
+        className="sidebar-workspace-btn mx-3 mb-4 flex items-center gap-2 rounded-lg px-3 py-2.5 text-left"
       >
-        <span className="flex h-6 w-6 items-center justify-center rounded bg-signal-500/15 text-[10px] font-bold text-signal-400">
+        <span className="flex h-6 w-6 items-center justify-center rounded bg-white/20 text-[10px] font-bold text-white shadow-xs">
           {user?.tenantName ? user.tenantName.slice(0, 2).toUpperCase() : "PA"}
         </span>
-        <span className="flex-1">
-          <span className="block truncate text-[12px] font-medium text-ink-100">{workspaceName}</span>
-          <span className="block text-[10px] text-ink-500">
+        <span className="flex-1 min-w-0">
+          <span className="block truncate text-[12px] font-medium text-white">{workspaceName}</span>
+          <span className="block truncate text-[10px] text-white/75">
             {user?.role === "PLATFORM_ADMIN" ? t("Platform console") : t("Active workspace")}
           </span>
         </span>
-        <ChevronDown className="h-3.5 w-3.5 text-ink-500" />
+        <ChevronDown className="h-3.5 w-3.5 text-white/70 shrink-0" />
       </button>
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
@@ -153,7 +152,7 @@ export function AppShell() {
           if (!visible.length) return null;
           return (
             <div key={group.label}>
-              <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-600">{t(group.label)}</p>
+              <p className="sidebar-group-title mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-[0.16em]">{t(group.label)}</p>
               <div className="space-y-0.5">
                 {visible.map((item) => (
                   <NavLink
@@ -163,17 +162,17 @@ export function AppShell() {
                     onClick={() => setMobileOpen(false)}
                     className={({ isActive }) =>
                       clsx(
-                        "group flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] font-medium transition-colors",
+                        "group flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] font-medium",
                         isActive
-                          ? "nav-active bg-white/[0.07] text-white"
-                          : "text-ink-400 hover:bg-white/[0.04] hover:text-ink-100",
+                          ? "sidebar-link-active"
+                          : "sidebar-link",
                       )
                     }
                   >
                     {item.icon}
                     <span className="flex-1">{t(item.label)}</span>
                     {item.label === "Dispatch" ? (
-                      <span className="rounded bg-signal-500/15 px-1.5 py-px font-mono text-[9px] font-medium text-signal-400">LIVE</span>
+                      <span className="rounded bg-white/25 px-1.5 py-px font-mono text-[9px] font-semibold text-white">LIVE</span>
                     ) : null}
                   </NavLink>
                 ))}
@@ -183,9 +182,9 @@ export function AppShell() {
         })}
       </nav>
 
-      <div className="border-t border-ink-800/80 p-3">
+      <div className="sidebar-footer p-3">
         <div className="flex items-center gap-2.5 rounded-lg px-1.5 py-1.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-ink-800 font-mono text-[11px] text-ink-200">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 font-mono text-[11px] text-white">
             {user?.name
               .split(" ")
               .map((n) => n[0])
@@ -193,13 +192,13 @@ export function AppShell() {
               .slice(0, 2)}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[12px] font-medium text-ink-100">{user?.name}</p>
-            <p className="truncate text-[10px] text-ink-500">{user ? t(ROLE_LABELS[user.role]) : ""}</p>
+            <p className="truncate text-[12px] font-medium text-white">{user?.name}</p>
+            <p className="truncate text-[10px] text-white/75">{user ? t(ROLE_LABELS[user.role]) : ""}</p>
           </div>
           <button
             onClick={logout}
             title={t("Sign out")}
-            className="rounded p-1.5 text-ink-500 transition-colors hover:bg-ink-800 hover:text-ink-200"
+            className="sidebar-footer-btn rounded p-1.5 text-white/70"
           >
             <LogOut className="h-4 w-4" />
           </button>
@@ -240,23 +239,6 @@ export function AppShell() {
                 {t("Search trips…")}
                 <span className="ml-auto mr-2 kbd">⌘K</span>
               </button>
-            </div>
-
-            {/* Global Language Selector */}
-            <div className="flex items-center gap-1.5 rounded-md border border-ink-200 bg-white px-2 py-1 shadow-sm">
-              <Globe className="h-3.5 w-3.5 text-ink-500" />
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as Language)}
-                className="cursor-pointer bg-transparent text-[11.5px] font-medium text-ink-700 outline-none"
-                aria-label="Select language"
-              >
-                {SUPPORTED_LANGUAGES.map((l) => (
-                  <option key={l.code} value={l.code}>
-                    {l.nativeName} ({l.name})
-                  </option>
-                ))}
-              </select>
             </div>
 
             <button

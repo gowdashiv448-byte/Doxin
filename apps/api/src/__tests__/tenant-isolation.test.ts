@@ -48,6 +48,7 @@ const TENANT_TABLES = [
   "truck_utilization_metrics",
   "audit_logs",
   "tenant_counters",
+  "contacts",
 ];
 
 const NOT_NULL_TENANT_TABLES = TENANT_TABLES.filter(
