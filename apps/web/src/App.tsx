@@ -18,7 +18,7 @@ import FuelPage from "./pages/FuelPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SafetyPage from "./pages/SafetyPage";
 import AccountingPage from "./pages/AccountingPage";
-import TeamPage from "./pages/TeamPage";
+import ContactsPage from "./pages/ContactsPage";
 import ImportsPage from "./pages/ImportsPage";
 import SettingsPage from "./pages/SettingsPage";
 import { Spinner } from "./components/ui";
@@ -85,7 +85,8 @@ export default function App() {
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/safety" element={<SafetyPage />} />
                 <Route path="/accounting" element={<AccountingPage />} />
-                <Route path="/team" element={<AdminOnly><TeamPage /></AdminOnly>} />
+                <Route path="/contacts" element={<ContactsPage />} />
+                <Route path="/team" element={<Navigate to="/contacts" replace />} />
                 <Route path="/imports" element={<AdminOnly><ImportsPage /></AdminOnly>} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="*" element={<NotFound />} />

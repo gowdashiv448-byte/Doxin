@@ -14,6 +14,42 @@
   --signal-500: 232 89 12;
   --signal-600: 194 65 12;
   --signal-700: 154 52 18;
+
+  /* Sidebar Themed Navigation Colors (Default: Orange) */
+  --sidebar-bg: #7c2d12;
+  --sidebar-card-bg: rgba(0, 0, 0, 0.22);
+  --sidebar-card-border: rgba(255, 255, 255, 0.16);
+  --sidebar-heading: #fed7aa;
+  --sidebar-text: #ffedd5;
+  --sidebar-text-muted: rgba(255, 237, 213, 0.85);
+  --sidebar-hover: rgba(255, 255, 255, 0.14);
+  --sidebar-active: rgba(255, 255, 255, 0.24);
+  --sidebar-active-border: #ffffff;
+  --sidebar-divider: rgba(255, 255, 255, 0.14);
+  --sidebar-badge-bg: #ea580c;
+  --sidebar-badge-text: #ffffff;
+}
+
+:root[data-color-theme="orange"] {
+  --signal-50: 255 247 237;
+  --signal-100: 255 237 213;
+  --signal-400: 249 115 22;
+  --signal-500: 232 89 12;
+  --signal-600: 194 65 12;
+  --signal-700: 154 52 18;
+
+  --sidebar-bg: #7c2d12;
+  --sidebar-card-bg: rgba(0, 0, 0, 0.22);
+  --sidebar-card-border: rgba(255, 255, 255, 0.16);
+  --sidebar-heading: #fed7aa;
+  --sidebar-text: #ffedd5;
+  --sidebar-text-muted: rgba(255, 237, 213, 0.85);
+  --sidebar-hover: rgba(255, 255, 255, 0.14);
+  --sidebar-active: rgba(255, 255, 255, 0.24);
+  --sidebar-active-border: #ffffff;
+  --sidebar-divider: rgba(255, 255, 255, 0.14);
+  --sidebar-badge-bg: #ea580c;
+  --sidebar-badge-text: #ffffff;
 }
 
 :root[data-color-theme="green"] {
@@ -23,6 +59,19 @@
   --signal-500: 21 128 61;
   --signal-600: 22 101 52;
   --signal-700: 20 83 45;
+
+  --sidebar-bg: #14532d;
+  --sidebar-card-bg: rgba(0, 0, 0, 0.22);
+  --sidebar-card-border: rgba(255, 255, 255, 0.16);
+  --sidebar-heading: #bbf7d0;
+  --sidebar-text: #f0fdf4;
+  --sidebar-text-muted: rgba(240, 253, 244, 0.85);
+  --sidebar-hover: rgba(255, 255, 255, 0.14);
+  --sidebar-active: rgba(255, 255, 255, 0.24);
+  --sidebar-active-border: #ffffff;
+  --sidebar-divider: rgba(255, 255, 255, 0.14);
+  --sidebar-badge-bg: #15803d;
+  --sidebar-badge-text: #ffffff;
 }
 
 :root[data-color-theme="blue"] {
@@ -32,6 +81,19 @@
   --signal-500: 29 78 216;
   --signal-600: 30 64 175;
   --signal-700: 30 58 138;
+
+  --sidebar-bg: #1e3a8a;
+  --sidebar-card-bg: rgba(0, 0, 0, 0.22);
+  --sidebar-card-border: rgba(255, 255, 255, 0.16);
+  --sidebar-heading: #bfdbfe;
+  --sidebar-text: #eff6ff;
+  --sidebar-text-muted: rgba(239, 246, 255, 0.85);
+  --sidebar-hover: rgba(255, 255, 255, 0.14);
+  --sidebar-active: rgba(255, 255, 255, 0.24);
+  --sidebar-active-border: #ffffff;
+  --sidebar-divider: rgba(255, 255, 255, 0.14);
+  --sidebar-badge-bg: #1d4ed8;
+  --sidebar-badge-text: #ffffff;
 }
 
 :root[data-color-theme="purple"] {
@@ -41,6 +103,19 @@
   --signal-500: 126 34 206;
   --signal-600: 107 33 168;
   --signal-700: 88 28 135;
+
+  --sidebar-bg: #581c87;
+  --sidebar-card-bg: rgba(0, 0, 0, 0.22);
+  --sidebar-card-border: rgba(255, 255, 255, 0.16);
+  --sidebar-heading: #e9d5ff;
+  --sidebar-text: #faf5ff;
+  --sidebar-text-muted: rgba(250, 245, 255, 0.85);
+  --sidebar-hover: rgba(255, 255, 255, 0.14);
+  --sidebar-active: rgba(255, 255, 255, 0.24);
+  --sidebar-active-border: #ffffff;
+  --sidebar-divider: rgba(255, 255, 255, 0.14);
+  --sidebar-badge-bg: #7e22ce;
+  --sidebar-badge-text: #ffffff;
 }
 
 @layer base {
@@ -141,6 +216,50 @@
   }
   .skeleton {
     @apply animate-pulse rounded-md bg-ink-100;
+  }
+
+  /* Themed Navigation Sidebar Section (where settings, invoices, loads, drivers live) */
+  .sidebar-shell {
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    border-right: 1px solid var(--sidebar-divider);
+    transition: background-color 200ms ease, border-color 200ms ease;
+  }
+  .sidebar-workspace-btn {
+    background-color: var(--sidebar-card-bg);
+    border: 1px solid var(--sidebar-card-border);
+    transition: background-color 150ms ease, border-color 150ms ease;
+  }
+  .sidebar-workspace-btn:hover {
+    background-color: var(--sidebar-hover);
+    border-color: rgba(255, 255, 255, 0.28);
+  }
+  .sidebar-group-title {
+    color: var(--sidebar-heading);
+  }
+  .sidebar-link {
+    color: var(--sidebar-text-muted);
+    transition: all 150ms ease;
+  }
+  .sidebar-link:hover {
+    background-color: var(--sidebar-hover);
+    color: #ffffff;
+  }
+  .sidebar-link-active {
+    background-color: var(--sidebar-active);
+    color: #ffffff;
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--sidebar-active-border);
+  }
+  .sidebar-footer {
+    border-top: 1px solid var(--sidebar-divider);
+  }
+  .sidebar-footer-btn {
+    transition: background-color 150ms ease, color 150ms ease;
+  }
+  .sidebar-footer-btn:hover {
+    background-color: var(--sidebar-hover);
+    color: #ffffff;
   }
 }
 

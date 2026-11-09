@@ -99,12 +99,20 @@ export async function generateBillForLoadTx(
   const row = loadRes.rows[0];
   if (!row) throw notFound("Load");
 
-  // 3. Dispatcher company name from tenant config or tenant name
+  // 3. Dispatcher company name & details from tenant config or tenant name
   const configObj = (row.tenant_config ?? {}) as Record<string, unknown>;
   const dispatcherCompanyName =
     (typeof configObj.companyName === "string" && configObj.companyName.trim()) ||
     row.tenant_name ||
     "Doxin Logistics";
+  const companyGstin = (typeof configObj.gstin === "string" && configObj.gstin) || "29AAACD1234F1Z5";
+  const companyPan = (typeof configObj.pan === "string" && configObj.pan) || "AAACD1234F";
+  const companyAddress = (typeof configObj.address === "string" && configObj.address) || "Plot 42, Transport Nagar, Phase-II, Outer Ring Road, Bengaluru, Karnataka 560068";
+  const companyPhone = (typeof configObj.phone === "string" && configObj.phone) || "+91 80 4123 9800";
+  const companyEmail = (typeof configObj.email === "string" && configObj.email) || "billing@doxinlogistics.in";
+  const companyBankName = (typeof configObj.bankName === "string" && configObj.bankName) || "HDFC Bank Ltd.";
+  const companyBankAccount = (typeof configObj.bankAccount === "string" && configObj.bankAccount) || "50200084920194";
+  const companyBankIfsc = (typeof configObj.bankIfsc === "string" && configObj.bankIfsc) || "HDFC0000128";
 
   // 4. Financial Calculations & 18% GST Breakdown
   const linehaulAmount = Math.round(Number(row.revenue ?? 0) * 100) / 100;
@@ -165,6 +173,14 @@ export async function generateBillForLoadTx(
     loadDate: row.load_date ? String(row.load_date) : new Date().toISOString().slice(0, 10),
     deliveredAt: toIsoDateString(row.delivered_at),
     dispatcherCompanyName,
+    companyGstin,
+    companyPan,
+    companyAddress,
+    companyPhone,
+    companyEmail,
+    companyBankName,
+    companyBankAccount,
+    companyBankIfsc,
     customerName: row.customer_name,
     contactName: row.contact_name,
     contactEmail: row.contact_email,
@@ -476,6 +492,14 @@ export async function generatePreviewPdfForLoad(loadId: string): Promise<Buffer>
     (typeof configObj.companyName === "string" && configObj.companyName.trim()) ||
     row.tenant_name ||
     "Doxin Logistics";
+  const companyGstin = (typeof configObj.gstin === "string" && configObj.gstin) || "29AAACD1234F1Z5";
+  const companyPan = (typeof configObj.pan === "string" && configObj.pan) || "AAACD1234F";
+  const companyAddress = (typeof configObj.address === "string" && configObj.address) || "Plot 42, Transport Nagar, Phase-II, Outer Ring Road, Bengaluru, Karnataka 560068";
+  const companyPhone = (typeof configObj.phone === "string" && configObj.phone) || "+91 80 4123 9800";
+  const companyEmail = (typeof configObj.email === "string" && configObj.email) || "billing@doxinlogistics.in";
+  const companyBankName = (typeof configObj.bankName === "string" && configObj.bankName) || "HDFC Bank Ltd.";
+  const companyBankAccount = (typeof configObj.bankAccount === "string" && configObj.bankAccount) || "50200084920194";
+  const companyBankIfsc = (typeof configObj.bankIfsc === "string" && configObj.bankIfsc) || "HDFC0000128";
 
   const linehaulAmount = Math.round(Number(row.revenue ?? 0) * 100) / 100;
   const fuelSurcharge = Math.round(Number(row.fuel_surcharge ?? 0) * 100) / 100;
@@ -492,6 +516,14 @@ export async function generatePreviewPdfForLoad(loadId: string): Promise<Buffer>
     loadDate: row.load_date,
     deliveredAt: row.delivered_at,
     dispatcherCompanyName,
+    companyGstin,
+    companyPan,
+    companyAddress,
+    companyPhone,
+    companyEmail,
+    companyBankName,
+    companyBankAccount,
+    companyBankIfsc,
     customerName: row.customer_name,
     contactName: row.contact_name,
     contactEmail: row.contact_email,
@@ -527,6 +559,14 @@ export async function generateSampleInvoicePdf(tenantName?: string): Promise<Buf
     loadDate: new Date().toISOString().slice(0, 10),
     deliveredAt: new Date().toISOString().slice(0, 10),
     dispatcherCompanyName: company,
+    companyGstin: "29AAACD1234F1Z5",
+    companyPan: "AAACD1234F",
+    companyAddress: "Plot 42, Transport Nagar, Phase-II, Outer Ring Road, Bengaluru, Karnataka 560068",
+    companyPhone: "+91 80 4123 9800",
+    companyEmail: "billing@doxinlogistics.in",
+    companyBankName: "HDFC Bank Ltd.",
+    companyBankAccount: "50200084920194",
+    companyBankIfsc: "HDFC0000128",
     customerName: "Metro Wholesale Pvt. Ltd.",
     contactName: "Rajesh Sharma",
     contactEmail: "accounting@metrowholesale.example",

@@ -305,6 +305,22 @@ async function ensureStarterData(tenantId: string) {
         ],
       );
     }
+
+    const sampleContacts = [
+      ["Rajesh Sharma", "Metro Wholesale Pvt. Ltd.", "+91 98201 12345", "rajesh.sharma@metrowholesale.in", "FMCG bulk distribution, regional inventory coordination and warehousing"],
+      ["Sunita Patel", "Gujarat Freight Terminals", "+91 98980 54321", "sunita.p@gujaratterminals.com", "Container depot management, ICD clearance, and port cartage operations"],
+      ["Anil Verma", "QuickLogistics Warehousing", "+91 97110 67890", "anil.verma@quicklogistics.in", "Multi-temperature cold chain supply, pharmaceutical and fresh produce storage"],
+      ["Ramesh Rao", "South India Freight Carriers", "+91 94480 11223", "ramesh.rao@sifc.co.in", "Full truckload (FTL) linehaul fleet operator for southern regional transit"],
+      ["Pooja Deshmukh", null, "+91 98220 99887", "pooja.d@freightconnect.in", "Independent freight broker and spot load coordinator across Maharashtra and Gujarat"],
+      ["Vikram Singh", "Delhi NCR Cargo Hub", "+91 99100 88776", "vikram.singh@delhicargohub.com", "Express cargo consolidation, cross-docking facility, and last-mile dispatch"],
+    ];
+    for (const [name, company, mobile, email, desc] of sampleContacts) {
+      await client.query(
+        `INSERT INTO contacts (name, company_name, mobile_number, email, description)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [name, company, mobile, email, desc],
+      );
+    }
     void customerId;
   });
 }

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { Check, ExternalLink, Globe, KeyRound, LogOut, Palette, ShieldCheck } from "lucide-react";
+import { Check, Globe, KeyRound, LogOut, Palette, ShieldCheck } from "lucide-react";
 import { ROLE_LABELS, THEME_COLOR_LABELS, THEME_COLORS, type ThemeColor } from "@doxin/shared";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -167,23 +167,11 @@ export default function SettingsPage() {
 
         <div className="space-y-4">
           <Card className="p-5">
-            <h2 className="text-[14px] font-semibold text-ink-900">System</h2>
-            <dl className="mt-3 space-y-2.5 text-[12px]">
-              <div className="flex justify-between"><dt className="text-ink-500">Operation</dt><dd className="font-medium">India Logistics Hub</dd></div>
-              <div className="flex justify-between"><dt className="text-ink-500">Mode</dt><dd className="font-mono text-[11px]">{import.meta.env.DEV ? "development" : "live"}</dd></div>
-              <div className="flex justify-between"><dt className="text-ink-500">Region</dt><dd>ap-south-1 (Mumbai)</dd></div>
-              <div className="flex justify-between"><dt className="text-ink-500">Currency</dt><dd className="font-medium">INR (₹)</dd></div>
-            </dl>
-          </Card>
-          <Card className="p-5">
-            <h2 className="text-[14px] font-semibold text-ink-900">Developer API</h2>
-            <p className="mt-1 text-[12px] leading-5 text-ink-500">Interactive API reference documentation.</p>
-            <a href="/docs" target="_blank" rel="noreferrer" className="btn-secondary mt-3 w-full"><ExternalLink className="h-3.5 w-3.5" /> API docs</a>
-          </Card>
-          <Card className="p-5">
-            <h2 className="text-[14px] font-semibold text-ink-900">Logout</h2>
-            <p className="mt-1 text-[12px] text-ink-500">Sign out of this session safely.</p>
-            <Button variant="danger" className="mt-3 w-full" onClick={logout}><LogOut className="h-3.5 w-3.5" /> Sign out</Button>
+            <h2 className="text-[14px] font-semibold text-ink-900">{t("Sign out")}</h2>
+            <p className="mt-1 text-[12px] text-ink-500">{t("Sign out of this session safely.")}</p>
+            <Button variant="danger" className="mt-4 w-full" onClick={logout}>
+              <LogOut className="h-3.5 w-3.5" /> {t("Sign out")}
+            </Button>
           </Card>
         </div>
       </div>
