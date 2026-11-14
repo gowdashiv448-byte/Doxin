@@ -9,7 +9,7 @@ describe("authentication and administrator access", () => {
 
   beforeAll(async () => {
     app = await createTestApp();
-    await query("UPDATE users SET theme_color = 'orange' WHERE email = $1", [ADMIN.email]);
+    await query("UPDATE users SET theme_color = 'blue' WHERE email = $1", [ADMIN.email]);
     adminToken = await login(app, ADMIN);
   });
 
@@ -62,7 +62,7 @@ describe("authentication and administrator access", () => {
     expect(response.json().user).toMatchObject({
       email: ADMIN.email,
       role: "ADMIN",
-      themeColor: "orange",
+      themeColor: "blue",
       tenantId: DEFAULT_TENANT_ID,
       tenantName: "Doxin",
     });
@@ -98,10 +98,10 @@ describe("authentication and administrator access", () => {
       method: "PATCH",
       url: "/api/auth/preferences",
       headers: auth(adminToken),
-      payload: { themeColor: "orange" },
+      payload: { themeColor: "blue" },
     });
     expect(reset.statusCode).toBe(200);
-    expect(reset.json().user.themeColor).toBe("orange");
+    expect(reset.json().user.themeColor).toBe("blue");
   });
 
   it("allows the administrator to write operational and fleet data", async () => {

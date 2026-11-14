@@ -29,7 +29,7 @@ immediately.
 | **Analytics** | Filter the full history by date; review revenue, contribution margin, RPM/CPM, on-time performance, lanes, customers, drivers, fleet and safety. |
 | **Imports** | Upload any supported CSV from the browser and watch idempotent, atomic import results. |
 | **Administrators & audit** | Add or disable administrator accounts; inspect the append-only audit trail for sensitive actions. |
-| **Settings** | Review profile, session and workspace configuration; switch the accent color between orange, green, blue and purple. |
+| **Settings** | Review profile, session and workspace configuration; switch the accent color between blue, orange, green and purple. |
 
 ---
 
@@ -429,7 +429,7 @@ server; hiding a button in the UI is never the only control.
 
 The accent color is stored per administrator in PostgreSQL and mirrored to
 local storage so the chosen theme applies without a flash on the next page
-load. Orange is the default; green, blue and purple are available in Settings.
+load. Blue is the default; orange, green and purple are available in Settings.
 
 ---
 

@@ -465,7 +465,7 @@ describe("tenant isolation", () => {
       email: user.email,
       name: user.name,
       role: "ADMIN",
-      themeColor: "orange",
+      themeColor: "blue",
       tenantId: NORTHWIND_TENANT_ID,
       tenantName: "Northwind Logistics",
       tid: NORTHWIND_TENANT_ID,
@@ -483,7 +483,7 @@ describe("tenant isolation", () => {
       email: user.email,
       name: user.name,
       role: "ADMIN",
-      themeColor: "orange",
+      themeColor: "blue",
       tenantId: user.tenantId,
       tenantName: user.tenantName,
     });

@@ -67,7 +67,7 @@ export default function SettingsPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="flex items-center gap-2 text-[14px] font-semibold text-ink-900"><Palette className="h-4 w-4 text-ink-400" /> Accent color</h2>
-            <p className="mt-0.5 text-[12px] text-ink-500">Choose the color used for primary actions, highlights and charts. Orange is the default.</p>
+            <p className="mt-0.5 text-[12px] text-ink-500">Choose the color used for primary actions, highlights and charts. Blue is the default.</p>
           </div>
           <Badge tone="neutral">Saved to your account</Badge>
         </div>

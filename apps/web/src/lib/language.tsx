@@ -20,6 +20,7 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
 ];
 
 export const LANGUAGE_STORAGE_KEY = "doxin_preferred_language";
+export const DEFAULT_LANGUAGE: Language = "en";
 
 export function getStoredLanguage(): Language {
   try {
@@ -30,7 +31,7 @@ export function getStoredLanguage(): Language {
   } catch {
     // ignore
   }
-  return "en";
+  return DEFAULT_LANGUAGE;
 }
 
 export function setStoredLanguage(code: Language): void {
@@ -2634,7 +2635,7 @@ interface LanguageContextType {
 }
 
 export const LanguageContext = createContext<LanguageContextType>({
-  language: "en",
+  language: DEFAULT_LANGUAGE,
   setLanguage: () => {},
   t: (key: string) => key,
 });

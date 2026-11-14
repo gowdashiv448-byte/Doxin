@@ -11,15 +11,16 @@ export const ROLE_LABELS: Record<Role, string> = {
   PLATFORM_ADMIN: "Platform administrator",
 };
 
-export const THEME_COLORS = ["orange", "green", "blue", "purple"] as const;
+export const THEME_COLORS = ["blue", "orange", "green", "purple"] as const;
 export type ThemeColor = (typeof THEME_COLORS)[number];
 
-export const DEFAULT_THEME_COLOR: ThemeColor = "orange";
+export const DEFAULT_THEME_COLOR: ThemeColor = "blue";
+export const DEFAULT_LANGUAGE = "en" as const;
 
 export const THEME_COLOR_LABELS: Record<ThemeColor, string> = {
+  blue: "Blue",
   orange: "Orange",
   green: "Green",
-  blue: "Blue",
   purple: "Purple",
 };
 

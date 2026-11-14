@@ -27,5 +27,5 @@ ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
 ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role = 'ADMIN');
 
 ALTER TABLE users
-  ADD COLUMN theme_color text NOT NULL DEFAULT 'orange'
+  ADD COLUMN theme_color text NOT NULL DEFAULT 'blue'
   CHECK (theme_color IN ('orange', 'green', 'blue', 'purple'));

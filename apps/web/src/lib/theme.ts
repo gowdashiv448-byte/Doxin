@@ -3,9 +3,9 @@ import { DEFAULT_THEME_COLOR, THEME_COLORS, type ThemeColor } from "@doxin/share
 const STORAGE_KEY = "doxin.themeColor";
 
 export const THEME_SWATCHES: Record<ThemeColor, string> = {
+  blue: "#1D4ED8",
   orange: "#E8590C",
   green: "#15803D",
-  blue: "#1D4ED8",
   purple: "#7E22CE",
 };
 
